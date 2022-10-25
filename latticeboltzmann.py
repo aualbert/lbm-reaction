@@ -2,18 +2,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 """
-Create Your Own Lattice Boltzmann Simulation (With Python)
-Philip Mocz (2020) Princeton Univeristy, @PMocz
-
-Simulate flow past cylinder
-for an isothermal fluid
-
+Lattice Boltzmann method with arbitrary reactions to model E. coli growth.
+Based on code from Philip Mocz (2020) Princeton Univeristy, @PMocz.
 """
 
-
-
 def main():
-	""" Lattice Boltzmann Simulation """
 	
 	# Simulation parameters
 	Nx                     = 400    # resolution x-dir
