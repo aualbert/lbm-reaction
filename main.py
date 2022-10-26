@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import numpy as np
+import shapes
 
 """
 Lattice Boltzmann method with arbitrary reactions to model E. coli growth.
@@ -15,7 +16,7 @@ def main():
     Ny = 100  # width
     rho0 = 100  # average density
     tau = 0.6  # relaxation factor
-    Nt = 500  # number of timesteps
+    Nt = 5000  # number of timesteps
 
     # Lattice speeds / weights for D2Q9
     NL = 9
@@ -38,7 +39,8 @@ def main():
 
     # Obstacles
     X, Y = np.meshgrid(range(Nx), range(Ny))
-    obstacles = (Ny - Y < 5) | (Y < 5) | ((X - Nx / 4) ** 2 + (Y - Ny / 2) ** 2 < (Ny / 8) ** 2)  # circle and borders
+    obstacles = (shapes.circle(X, Y, Nx / 4, Ny / 2, Ny / 8) | 
+                shapes.square(X, Y, Nx / 2, Ny / 2, Ny / 2))
 
     # Animation parameters
     fig, axs = plt.subplots(3)
@@ -104,9 +106,11 @@ def main():
             ims.append([im0, im1, im2])
 
     # Save figure
-    print("\ncreating animation");
-    ani = animation.ArtistAnimation(fig, ims, interval=50, blit=False, repeat_delay=1000)
-    print("saving animation");
+    print("\ncreating animation")
+    ani = animation.ArtistAnimation(
+        fig, ims, interval=50, blit=False, repeat_delay=1000
+    )
+    print("saving animation")
     ani.save("output.gif")
 
     return 0
