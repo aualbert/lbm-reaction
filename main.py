@@ -15,7 +15,7 @@ def main():
     Ny = 100  # width
     rho0 = 100  # average density
     tau = 0.6  # relaxation factor
-    Nt = 5000  # number of timesteps
+    Nt = 500  # number of timesteps
 
     # Lattice speeds / weights for D2Q9
     NL = 9
@@ -104,7 +104,9 @@ def main():
             ims.append([im0, im1, im2])
 
     # Save figure
-    ani = animation.ArtistAnimation(fig, ims, interval=50, blit=True, repeat_delay=1000)
+    print("\ncreating animation");
+    ani = animation.ArtistAnimation(fig, ims, interval=50, blit=False, repeat_delay=1000)
+    print("saving animation");
     ani.save("output.gif")
 
     return 0
