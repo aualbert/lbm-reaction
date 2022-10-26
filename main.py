@@ -15,7 +15,7 @@ def main():
     Ny = 100  # width
     rho0 = 100  # average density
     tau = 0.6  # relaxation factor
-    Nt = 500  # number of timesteps
+    Nt = 5000  # number of timesteps
 
     # Lattice speeds / weights for D2Q9
     NL = 9
