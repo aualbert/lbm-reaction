@@ -38,7 +38,7 @@ def main():
 
     # Obstacles
     X, Y = np.meshgrid(range(Nx), range(Ny))
-    obstacles = (X - Nx / 4) ** 2 + (Y - Ny / 2) ** 2 < (Ny / 4) ** 2  # circle
+    obstacles = (Ny - Y < 5) | (Y < 5) | ((X - Nx / 4) ** 2 + (Y - Ny / 2) ** 2 < (Ny / 8) ** 2)  # circle and borders
 
     # Animation parameters
     fig, axs = plt.subplots(3)
