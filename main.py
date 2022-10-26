@@ -11,13 +11,13 @@ Based on code from Philip Mocz (2020) Princeton Univeristy, @PMocz.
 def main():
 
     # Simulation parameters
-    Nx = 400  # resolution x-dir
-    Ny = 100  # resolution y-dir
+    Nx = 400  # length
+    Ny = 100  # width
     rho0 = 100  # average density
-    tau = 0.6  # collision timescale
+    tau = 0.6  # relaxation factor
     Nt = 500  # number of timesteps
 
-    # Lattice speeds / weights
+    # Lattice speeds / weights for D2Q9
     NL = 9
     idxs = np.arange(NL)
     cxs = np.array([0, 0, 1, 1, 1, 0, -1, -1, -1])
@@ -41,7 +41,10 @@ def main():
     obstacles = (X - Nx / 4) ** 2 + (Y - Ny / 2) ** 2 < (Ny / 4) ** 2  # circle
 
     # Animation parameters
-    fig, ax = plt.subplots()
+    fig, axs = plt.subplots(3)
+    plt.tight_layout()
+    for i in range(0, 3):
+        axs[i].imshow(~obstacles, cmap="gray", alpha=0.3)
     ims = []
 
     # Simulation Main Loop
@@ -83,14 +86,22 @@ def main():
 
         # Plot every 10 steps
         if (it % 10) == 0:
+
+            # vorticity
             vorticity = (np.roll(ux, -1, axis=0) - np.roll(ux, 1, axis=0)) - (
                 np.roll(uy, -1, axis=1) - np.roll(uy, 1, axis=1)
             )
-            vorticity[obstacles] = np.nan
             vorticity = np.ma.array(vorticity, mask=obstacles)
-            im = ax.imshow(vorticity, cmap="bwr")
-            # im = ax.imshow(~obstacles, cmap="gray", alpha=0.3)
-            ims.append([im])
+            im0 = axs[0].imshow(vorticity, cmap="bwr")
+
+            # density
+            density = np.ma.array(rho, mask=obstacles)
+            im1 = axs[1].imshow(density, cmap="Blues")
+
+            # horizontal speed
+            speed = np.ma.array(ux, mask=obstacles)
+            im2 = axs[2].imshow(speed, cmap="bwr")
+            ims.append([im0, im1, im2])
 
     # Save figure
     ani = animation.ArtistAnimation(fig, ims, interval=50, blit=True, repeat_delay=1000)
