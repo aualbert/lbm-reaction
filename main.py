@@ -18,6 +18,7 @@ def main():
     rho0 = 100  # average density
     tau = 0.6  # relaxation factor
     Nt = 1000  # number of timesteps
+    icsc = 3 # see paper on biofilms 1/cs^2 -> influes on viscosity
 
     # Lattice speeds / weights for D2Q9
     NL = 9
@@ -25,8 +26,7 @@ def main():
     cxs = np.array([0, 0, 1, 1, 1, 0, -1, -1, -1])
     cys = np.array([0, 1, 1, 0, -1, -1, -1, 0, 1])
     weights = np.array(
-        [4 / 9, 1 / 9, 1 / 36, 1 / 9, 1 / 36, 1 / 9, 1 / 36, 1 / 9, 1 / 36]
-    )  # sums to 1
+        [4 / 9, 1 / 9, 1 / 36, 1 / 9, 1 / 36, 1 / 9, 1 / 36, 1 / 9, 1 / 36] )  # sums to 1
 
     # Initial Conditions
     F = np.ones((Ny, Nx, NL))  # * rho0 / NL
@@ -89,11 +89,10 @@ def main():
                 * w
                 * (
                     1
-                    + 3 * (cx * ux + cy * uy)
-                    + 9 * (cx * ux + cy * uy) ** 2 / 2
-                    - 3 * (ux**2 + uy**2) / 2
-                )
-            )
+                    + icsc * (cx * ux + cy * uy)
+                    + icsc**2 * (cx * ux + cy * uy) ** 2 / 2
+                    - icsc * (ux**2 + uy**2) / 2
+            ))
 
         F += -(1.0 / tau) * (F - Feq)
 
