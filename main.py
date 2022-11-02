@@ -17,7 +17,7 @@ def main():
     Ny = 100  # width
     rho0 = 100  # average density
     tau = 0.6  # relaxation factor
-    Nt = 1000  # number of timesteps
+    Nt = 5000  # number of timesteps
     icsc = 3 # see paper on biofilms 1/cs^2 -> influes on viscosity
 
     # Lattice speeds / weights for D2Q9
@@ -39,10 +39,8 @@ def main():
         F[:, :, i] *= rho0 / rho
 
     # Initial condition Nutrients
-    an = 0.7
-    N = np.zeros((Ny,Nx))
-    Nc = np.zeros((Ny,Nx))
-    N[:10,:10] = 1
+    G = np.zeros((Ny,Nx,NL))
+    G[:10,:10] = 1
 
     # Obstacles
     X, Y = np.meshgrid(range(Nx), range(Ny))
@@ -65,12 +63,14 @@ def main():
         print("\r", it, "/", Nt, end="")
 
         # Drift
-        Nc[:,:] = 0
         for i, cx, cy, w in zip(idxs, cxs, cys, weights):
             F[:, :, i] = np.roll(F[:, :, i], cx, axis=1)
             F[:, :, i] = np.roll(F[:, :, i], cy, axis=0)
-            Nc += w  * np.roll( (np.roll(N[:,:], cx, axis = 1)), cy, axis = 0)
-        N = (1 - an) * N + an * Nc
+
+        # Drift Nutrients
+        for i, cx, cy, w in zip(idxs, cxs, cys, weights):
+            G[:, :, i] = np.roll(G[:, :, i], cx, axis=1)
+            G[:, :, i] = np.roll(G[:, :, i], cy, axis=0)
 
         # Set reflective boundaries
         bndryF = F[obstacles, :]
@@ -96,6 +96,21 @@ def main():
 
         F += -(1.0 / tau) * (F - Feq)
 
+        # Apply collisions nutrients
+        Geq = np.zeros(G.shape)
+        Cl = np.sum(G,2)
+        for i, cx, cy, w in zip(idxs, cxs, cys, weights):
+            Geq[:, :, i] = (
+                Cl
+                * w
+                * (
+                    1
+                    + icsc * (cx * ux + cy * uy)
+            ))
+
+        G += -(1.0 / tau) * (G - Geq)
+
+
         # Apply boundary
         F[obstacles, :] = bndryF
 
@@ -118,7 +133,7 @@ def main():
             im2 = axs[2].imshow(speed, cmap="bwr")
 
             #Nutrients
-            nutri = np.ma.array(N, mask = obstacles)
+            nutri = np.ma.array(np.sum(G,2), mask = obstacles)
             im3 = axs[3].imshow(nutri, cmap="YlOrRd")
             ims.append([im0, im1, im2, im3])
 
