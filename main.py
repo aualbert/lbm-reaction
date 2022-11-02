@@ -17,7 +17,7 @@ def main():
     Ny = 100  # width
     rho0 = 100  # average density
     tau = 0.6  # relaxation factor
-    Nt = 5000  # number of timesteps
+    Nt = 1000  # number of timesteps
     icsc = 3 # see paper on biofilms 1/cs^2 -> influes on viscosity
 
     # Lattice speeds / weights for D2Q9
@@ -75,6 +75,8 @@ def main():
         # Set reflective boundaries
         bndryF = F[obstacles, :]
         bndryF = bndryF[:, [0, 5, 6, 7, 8, 1, 2, 3, 4]]
+        bndryG = G[obstacles, :]
+        bndryG = bndryG[:, [0, 5, 6, 7, 8, 1, 2, 3, 4]]
 
         # Calculate fluid variables
         rho = np.sum(F, 2)
@@ -113,6 +115,7 @@ def main():
 
         # Apply boundary
         F[obstacles, :] = bndryF
+        G[obstacles, :] = bndryG
 
         # Plot every 10 steps
         if (it % 10) == 0:
