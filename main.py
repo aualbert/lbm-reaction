@@ -17,8 +17,9 @@ def main():
     Ny = 100  # width
     rho0 = 100  # average density
     tau = 0.6  # relaxation factor
-    Nt = 1000  # number of timesteps
+    Nt = 2000  # number of timesteps
     icsc = 3 # see paper on biofilms 1/cs^2 -> influes on viscosity
+    flow = 0.05
 
     # Lattice speeds / weights for D2Q9
     NL = 9
@@ -40,7 +41,6 @@ def main():
 
     # Initial condition Nutrients
     G = np.zeros((Ny,Nx,NL))
-    G[:10,:10] = 1
 
     # Obstacles
     X, Y = np.meshgrid(range(Nx), range(Ny))
@@ -67,10 +67,18 @@ def main():
             F[:, :, i] = np.roll(F[:, :, i], cx, axis=1)
             F[:, :, i] = np.roll(F[:, :, i], cy, axis=0)
 
+         #simulate the flow -> extend the array
+        G = np.pad(G, ((0,0),(1,1),(0,0)),'edge')
+        G = np.pad(G,((0,0),(0,1),(0,0)))
+        G[:10,int(Nx/2),3] += flow
+
         # Drift Nutrients
         for i, cx, cy, w in zip(idxs, cxs, cys, weights):
             G[:, :, i] = np.roll(G[:, :, i], cx, axis=1)
             G[:, :, i] = np.roll(G[:, :, i], cy, axis=0)
+
+        # cut the array
+        G = G[:, 1:Nx+1, :]
 
         # Set reflective boundaries
         bndryF = F[obstacles, :]
@@ -112,7 +120,6 @@ def main():
 
         G += -(1.0 / tau) * (G - Geq)
 
-
         # Apply boundary
         F[obstacles, :] = bndryF
         G[obstacles, :] = bndryG
@@ -137,7 +144,7 @@ def main():
 
             #Nutrients
             nutri = np.ma.array(np.sum(G,2), mask = obstacles)
-            im3 = axs[3].imshow(nutri, cmap="YlOrRd")
+            im3 = axs[3].imshow(nutri, cmap="hot_r")
             ims.append([im0, im1, im2, im3])
 
 
