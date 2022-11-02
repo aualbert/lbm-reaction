@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+import matplotlib.colors as colors
 import numpy as np
 import shapes
 
@@ -16,7 +17,8 @@ def main():
     Ny = 100  # width
     rho0 = 100  # average density
     tau = 0.6  # relaxation factor
-    Nt = 5000  # number of timesteps
+    Nt = 1000  # number of timesteps
+    icsc = 3 # see paper on biofilms 1/cs^2 -> influes on viscosity
 
     # Lattice speeds / weights for D2Q9
     NL = 9
@@ -24,8 +26,7 @@ def main():
     cxs = np.array([0, 0, 1, 1, 1, 0, -1, -1, -1])
     cys = np.array([0, 1, 1, 0, -1, -1, -1, 0, 1])
     weights = np.array(
-        [4 / 9, 1 / 9, 1 / 36, 1 / 9, 1 / 36, 1 / 9, 1 / 36, 1 / 9, 1 / 36]
-    )  # sums to 1
+        [4 / 9, 1 / 9, 1 / 36, 1 / 9, 1 / 36, 1 / 9, 1 / 36, 1 / 9, 1 / 36] )  # sums to 1
 
     # Initial Conditions
     F = np.ones((Ny, Nx, NL))  # * rho0 / NL
@@ -37,6 +38,10 @@ def main():
     for i in idxs:
         F[:, :, i] *= rho0 / rho
 
+    # Initial condition Nutrients
+    G = np.zeros((Ny,Nx,NL))
+    G[:10,:10] = 1
+
     # Obstacles
     X, Y = np.meshgrid(range(Nx), range(Ny))
     obstacles = (
@@ -47,9 +52,9 @@ def main():
     )
 
     # Animation parameters
-    fig, axs = plt.subplots(3)
+    fig, axs = plt.subplots(4)
     plt.tight_layout()
-    for i in range(0, 3):
+    for i in range(4):
         axs[i].imshow(~obstacles, cmap="gray", alpha=0.3)
     ims = []
 
@@ -58,13 +63,20 @@ def main():
         print("\r", it, "/", Nt, end="")
 
         # Drift
-        for i, cx, cy in zip(idxs, cxs, cys):
+        for i, cx, cy, w in zip(idxs, cxs, cys, weights):
             F[:, :, i] = np.roll(F[:, :, i], cx, axis=1)
             F[:, :, i] = np.roll(F[:, :, i], cy, axis=0)
+
+        # Drift Nutrients
+        for i, cx, cy, w in zip(idxs, cxs, cys, weights):
+            G[:, :, i] = np.roll(G[:, :, i], cx, axis=1)
+            G[:, :, i] = np.roll(G[:, :, i], cy, axis=0)
 
         # Set reflective boundaries
         bndryF = F[obstacles, :]
         bndryF = bndryF[:, [0, 5, 6, 7, 8, 1, 2, 3, 4]]
+        bndryG = G[obstacles, :]
+        bndryG = bndryG[:, [0, 5, 6, 7, 8, 1, 2, 3, 4]]
 
         # Calculate fluid variables
         rho = np.sum(F, 2)
@@ -79,16 +91,31 @@ def main():
                 * w
                 * (
                     1
-                    + 3 * (cx * ux + cy * uy)
-                    + 9 * (cx * ux + cy * uy) ** 2 / 2
-                    - 3 * (ux**2 + uy**2) / 2
-                )
-            )
+                    + icsc * (cx * ux + cy * uy)
+                    + icsc**2 * (cx * ux + cy * uy) ** 2 / 2
+                    - icsc * (ux**2 + uy**2) / 2
+            ))
 
         F += -(1.0 / tau) * (F - Feq)
 
+        # Apply collisions nutrients
+        Geq = np.zeros(G.shape)
+        Cl = np.sum(G,2)
+        for i, cx, cy, w in zip(idxs, cxs, cys, weights):
+            Geq[:, :, i] = (
+                Cl
+                * w
+                * (
+                    1
+                    + icsc * (cx * ux + cy * uy)
+            ))
+
+        G += -(1.0 / tau) * (G - Geq)
+
+
         # Apply boundary
         F[obstacles, :] = bndryF
+        G[obstacles, :] = bndryG
 
         # Plot every 10 steps
         if (it % 10) == 0:
@@ -107,7 +134,12 @@ def main():
             # horizontal speed
             speed = np.ma.array(ux, mask=obstacles)
             im2 = axs[2].imshow(speed, cmap="bwr")
-            ims.append([im0, im1, im2])
+
+            #Nutrients
+            nutri = np.ma.array(np.sum(G,2), mask = obstacles)
+            im3 = axs[3].imshow(nutri, cmap="YlOrRd")
+            ims.append([im0, im1, im2, im3])
+
 
     # Save figure
     print("\ncreating animation")
