@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+import matplotlib.colors as colors
 import numpy as np
 import shapes
 
@@ -16,7 +17,7 @@ def main():
     Ny = 100  # width
     rho0 = 100  # average density
     tau = 0.6  # relaxation factor
-    Nt = 5000  # number of timesteps
+    Nt = 1000  # number of timesteps
 
     # Lattice speeds / weights for D2Q9
     NL = 9
@@ -37,6 +38,12 @@ def main():
     for i in idxs:
         F[:, :, i] *= rho0 / rho
 
+    # Initial condition Nutrients
+    an = 0.7
+    N = np.zeros((Ny,Nx))
+    Nc = np.zeros((Ny,Nx))
+    N[:10,:10] = 1
+
     # Obstacles
     X, Y = np.meshgrid(range(Nx), range(Ny))
     obstacles = (
@@ -47,9 +54,9 @@ def main():
     )
 
     # Animation parameters
-    fig, axs = plt.subplots(3)
+    fig, axs = plt.subplots(4)
     plt.tight_layout()
-    for i in range(0, 3):
+    for i in range(4):
         axs[i].imshow(~obstacles, cmap="gray", alpha=0.3)
     ims = []
 
@@ -58,9 +65,12 @@ def main():
         print("\r", it, "/", Nt, end="")
 
         # Drift
-        for i, cx, cy in zip(idxs, cxs, cys):
+        Nc[:,:] = 0
+        for i, cx, cy, w in zip(idxs, cxs, cys, weights):
             F[:, :, i] = np.roll(F[:, :, i], cx, axis=1)
             F[:, :, i] = np.roll(F[:, :, i], cy, axis=0)
+            Nc += w  * np.roll( (np.roll(N[:,:], cx, axis = 1)), cy, axis = 0)
+        N = (1 - an) * N + an * Nc
 
         # Set reflective boundaries
         bndryF = F[obstacles, :]
@@ -107,7 +117,12 @@ def main():
             # horizontal speed
             speed = np.ma.array(ux, mask=obstacles)
             im2 = axs[2].imshow(speed, cmap="bwr")
-            ims.append([im0, im1, im2])
+
+            #Nutrients
+            nutri = np.ma.array(N, mask = obstacles)
+            im3 = axs[3].imshow(nutri, cmap="YlOrRd")
+            ims.append([im0, im1, im2, im3])
+
 
     # Save figure
     print("\ncreating animation")
