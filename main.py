@@ -3,6 +3,7 @@ import matplotlib.animation as animation
 import matplotlib.colors as colors
 import numpy as np
 import shapes
+import random as rd
 
 """
 Lattice Boltzmann method with arbitrary reactions to model E. coli growth.
@@ -16,10 +17,12 @@ def main():
     Nx = 400  # length
     Ny = 100  # width
     rho0 = 100  # average density
-    tau = 0.6  # relaxation factor
-    Nt = 2000  # number of timesteps
+    tau = 0.9  #0.6 relaxation factor please keep it between 0.6 and 1
+    taul = 0.6 # relaxation factor nutrient
+    Nt = 5000  # number of timesteps
     icsc = 3 # see paper on biofilms 1/cs^2 -> influes on viscosity
     flow = 0.05
+    dt = 1
 
     # Lattice speeds / weights for D2Q9
     NL = 9
@@ -34,7 +37,7 @@ def main():
     np.random.seed(42)
     F += 0.01 * np.random.randn(Ny, Nx, NL)
     X, Y = np.meshgrid(range(Nx), range(Ny))
-    F[:, :, 3] += 2 * (1 + 0.2 * np.cos(2 * np.pi * X / Nx * 4))
+    F[:, :, 3] += 2 * (1 + 0.03 * rd.random())
     rho = np.sum(F, 2)
     for i in idxs:
         F[:, :, i] *= rho0 / rho
@@ -56,6 +59,7 @@ def main():
     plt.tight_layout()
     for i in range(4):
         axs[i].imshow(~obstacles, cmap="gray", alpha=0.3)
+
     ims = []
 
     # Simulation Main Loop
@@ -70,7 +74,7 @@ def main():
          #simulate the flow -> extend the array
         G = np.pad(G, ((0,0),(1,1),(0,0)),'edge')
         G = np.pad(G,((0,0),(0,1),(0,0)))
-        G[:10,int(Nx/2),3] += flow
+        G[Ny//2-20:Ny//2, 3 * Nx//4, 3] += flow
 
         # Drift Nutrients
         for i, cx, cy, w in zip(idxs, cxs, cys, weights):
@@ -104,7 +108,7 @@ def main():
                     - icsc * (ux**2 + uy**2) / 2
             ))
 
-        F += -(1.0 / tau) * (F - Feq)
+        F += -(dt / tau) * (F - Feq)
 
         # Apply collisions nutrients
         Geq = np.zeros(G.shape)
@@ -118,7 +122,7 @@ def main():
                     + icsc * (cx * ux + cy * uy)
             ))
 
-        G += -(1.0 / tau) * (G - Geq)
+        G += -(dt / taul) * (G - Geq)
 
         # Apply boundary
         F[obstacles, :] = bndryF
