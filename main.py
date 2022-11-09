@@ -19,6 +19,7 @@ def main():
     rho0 = 100  # average density
     tau = 0.65  #0.6 relaxation factor please keep it between 0.6 and 1
     taul = 0.6 # relaxation factor nutrient
+    tauc = 0.95 # relaxation factor cells
     Nt = 5000  # number of timesteps
     icsc = 3 # see paper on biofilms 1/cs^2 -> influes on viscosity
     Lflow = 0.001
@@ -43,8 +44,12 @@ def main():
     for i in idxs:
         F[:, :, i] *= rho0 / rho
 
-    # Initial condition Nutrients
+    # Initial condition Nutrients and cells
     G = np.zeros((Ny,Nx,NL))
+    C = np.zeros((Ny,Nx,NL))
+    for x in range((Nx//2 + Ny//4), (Nx//2 + Ny//4 + Nx//10)):
+        for y in range ((Ny//2 - Ny//10),(Ny//2 + Ny//10)):
+            C[y,x,:] = 1
 
     # Obstacles
     X, Y = np.meshgrid(range(Nx), range(Ny))
@@ -56,10 +61,10 @@ def main():
     )
 
     # Animation parameters
-    labels = ["Vorticity", "Density", "Horizontal Speed", "Nutrients Concentration"]
-    fig, axs = plt.subplots(4)
+    labels = ["Vorticity", "Density", "Horizontal Speed", "Nutrients Concentration", "Cells concentration"]
+    fig, axs = plt.subplots(5)
     plt.tight_layout()
-    for i in range(4):
+    for i in range(5):
         axs[i].imshow(~obstacles, cmap="gray", alpha=0.3)
         axs[i].set_title(labels[i])
         axs[i].axes.get_xaxis().set_visible(False)
@@ -71,6 +76,7 @@ def main():
     for it in range(Nt):
         print("\r", it, "/", Nt, end="")
 
+  ######## FLUID
         #simulate the flow -> extend the array
         F = np.pad(F, ((0,0),(1,1),(0,0)),'edge')
         F = np.pad(F,((0,0),(0,1),(0,0)))
@@ -86,11 +92,11 @@ def main():
          # cut the array
         F = F[:, 1:Nx+1, :]
 
+   ####### NUTRIENTS
          #simulate the flow -> extend the array
         G = np.pad(G, ((0,0),(1,1),(0,0)),'edge')
         G = np.pad(G,((0,0),(0,1),(0,0)))
         G[:, 0 , 3] += Nflow
-
 
         # Drift Nutrients
         for i, cx, cy, w in zip(idxs, cxs, cys, weights):
@@ -100,11 +106,28 @@ def main():
         # cut the array
         G = G[:, 1:Nx+1, :]
 
+   ######## CELLS
+        #simulate the flow -> extend the array
+        C = np.pad(C, ((0,0),(1,1),(0,0)),'edge')
+        C = np.pad(C,((0,0),(0,1),(0,0)))
+
+        # Drift
+        for i, cx, cy, w in zip(idxs, cxs, cys, weights):
+            C[:, :, i] = np.roll(C[:, :, i], cx, axis=1)
+            C[:, :, i] = np.roll(C[:, :, i], cy, axis=0)
+
+        # cut the array
+        C = C[:, 1:Nx+1, :]
+
+
         # Set reflective boundaries
         bndryF = F[obstacles, :]
         bndryF = bndryF[:, [0, 5, 6, 7, 8, 1, 2, 3, 4]]
         bndryG = G[obstacles, :]
         bndryG = bndryG[:, [0, 5, 6, 7, 8, 1, 2, 3, 4]]
+        bndryC = C[obstacles, :]
+        bndryC = bndryC[:, [0, 5, 6, 7, 8, 1, 2, 3, 4]]
+
 
         # Calculate fluid variables
         rho = np.sum(F, 2)
@@ -140,9 +163,25 @@ def main():
 
         G += -(dt / taul) * (G - Geq)
 
+        # Apply collisions cells
+        Ceq = np.zeros(C.shape)
+        Clc = np.sum(C,2)
+        for i, cx, cy, w in zip(idxs, cxs, cys, weights):
+            Ceq[:, :, i] = (
+                Clc
+                * w
+                * (
+                    1
+                    + icsc * (cx * ux + cy * uy)
+            ))
+
+        C += -(dt / tauc) * (C - Ceq)
+
+
         # Apply boundary
         F[obstacles, :] = bndryF
         G[obstacles, :] = bndryG
+        C[obstacles, :] = bndryC
 
         # Plot every 10 steps
         if (it % 10) == 0:
@@ -164,7 +203,12 @@ def main():
             #Nutrients
             nutri = np.ma.array(np.sum(G,2), mask = obstacles)
             im3 = axs[3].imshow(nutri, cmap="hot_r")
-            ims.append([im0, im1, im2, im3])
+
+            #Cells
+            cells = np.ma.array(np.sum(C,2), mask = obstacles)
+            im4 = axs[4].imshow(cells, cmap="ocean_r")
+            ims.append([im0, im1, im2, im3, im4])
+
 
     # Save figure
     print("\ncreating animation")
