@@ -21,7 +21,8 @@ def main():
     taul = 0.6 # relaxation factor nutrient
     Nt = 5000  # number of timesteps
     icsc = 3 # see paper on biofilms 1/cs^2 -> influes on viscosity
-    flow = 0.5
+    Lflow = 0.001
+    Nflow = 1
     dt = 1
 
     # Lattice speeds / weights for D2Q9
@@ -70,17 +71,26 @@ def main():
     for it in range(Nt):
         print("\r", it, "/", Nt, end="")
 
-        #Input new nutrients
-        G[:, 0 , 3] += flow
+        #simulate the flow -> extend the array
+        F = np.pad(F, ((0,0),(1,1),(0,0)),'edge')
+        F = np.pad(F,((0,0),(0,1),(0,0)))
+        F[:,0,:] = F[:,3,:]
+        F[:,Nx+1,:] = F[:,Nx-2,:]
+        F[:,0,3] += Lflow
 
         # Drift
         for i, cx, cy, w in zip(idxs, cxs, cys, weights):
             F[:, :, i] = np.roll(F[:, :, i], cx, axis=1)
             F[:, :, i] = np.roll(F[:, :, i], cy, axis=0)
 
+         # cut the array
+        F = F[:, 1:Nx+1, :]
+
          #simulate the flow -> extend the array
         G = np.pad(G, ((0,0),(1,1),(0,0)),'edge')
         G = np.pad(G,((0,0),(0,1),(0,0)))
+        G[:, 0 , 3] += Nflow
+
 
         # Drift Nutrients
         for i, cx, cy, w in zip(idxs, cxs, cys, weights):
