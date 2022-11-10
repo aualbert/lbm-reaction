@@ -18,8 +18,8 @@ def main():
     Ny = 150  # width
     rho0 = 100  # average density
     tau = 0.65  #0.6 relaxation factor please keep it between 0.6 and 1
-    taul = 0.6 # relaxation factor nutrient
-    tauc = 0.95 # relaxation factor cells
+    taul = 1.5 # relaxation factor nutrient
+    tauc = 0.6 # relaxation factor cells
     Nt = 5000  # number of timesteps
     icsc = 3 # see paper on biofilms 1/cs^2 -> influes on viscosity
     Lflow = 0.001
@@ -49,6 +49,12 @@ def main():
     C = np.zeros((Ny,Nx,NL))
     for x in range((Nx//2 + Ny//4), (Nx//2 + Ny//4 + Nx//10)):
         for y in range ((Ny//2 - Ny//10),(Ny//2 + Ny//10)):
+            C[y,x,:] = 1
+    for x in range((Ny//4), (Ny//4 + Nx//10)):
+        for y in range ((Ny//3 - Ny//10),(Ny//3 + Ny//10)):
+            C[y,x,:] = 1
+    for x in range(5, Nx//10):
+        for y in range ((2 * Ny//3 - Ny//10),(2* Ny//3 + Ny//10)):
             C[y,x,:] = 1
 
     # Obstacles
