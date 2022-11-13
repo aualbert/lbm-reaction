@@ -13,11 +13,11 @@ def rectangle(X, Y, x, y, xl, yl):
 def ellipse(X, Y, x, y, a, b, r):
     return (X - x) ** 2 / a ** 2 + (Y - y) ** 2 / b ** 2 < r ** 2
 
-def test(imagename):
-    im=imageio.imread(imagename)
-    answ = np.full(X.shape, False)
-    for i in range(X.shape[0]):
-        for j in range(X.shape[1]):
+def importimage(imagename):
+    im = imageio.imread(imagename)
+    answ = np.full(im.shape[:2], False)
+    for i in range(im.shape[0]):
+        for j in range(im.shape[1]):
             if not np.all(im[i][j]):
                 answ[i][j] = True
     return answ
