@@ -25,9 +25,9 @@ def import_border(imagename, x, y):
                 answ[i][j] = True
     return answ
 
-#maps colours to nutrients but i am not sure if this mapping is good
+#maps colours (r + 256 * g + 256 * 256 * b) / 100
 def colour_mapper(colour):
-    return int(colour[0]) + int(colour[1]) + int(colour[2])
+    return int(colour[0]) / 100 + int(colour[1]) * 256 / 100 + int(colour[2]) * 256 * 256 / 100
 
 #any colour but black and white is nutrients. The witer the color is(the closer to 255/255/255) the more nutriens there are
 def set_nutrients(imagename, x, y):
@@ -38,7 +38,7 @@ def set_nutrients(imagename, x, y):
         for j in range(im.shape[1]):
             #if color is black than ignore it as it is border
             colour_sum = colour_mapper(im[i][j])
-            if colour_sum == 765:
+            if colour_sum == colour_mapper([255, 255, 255]):
                 continue
             answ[i][j][8] = colour_sum
     return answ
