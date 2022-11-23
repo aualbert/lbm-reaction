@@ -151,19 +151,19 @@ def main():
             vorticity = (np.roll(ux, -1, axis=0) - np.roll(ux, 1, axis=0)) - (
                 np.roll(uy, -1, axis=1) - np.roll(uy, 1, axis=1) )
             vorticity = np.ma.array(vorticity, mask=obstacles)
-            im0 = axs[0].imshow(vorticity, cmap="bwr", label = "Vorticity")
+            im0 = axs[0].imshow(vorticity, cmap="bwr", label = "Vorticity", vmin = -0.3, vmax = 0.3)
 
             # density
             density = np.ma.array(rho, mask=obstacles)
-            im1 = axs[1].imshow(density, cmap="Blues")
+            im1 = axs[1].imshow(density, cmap="Blues", vmin = 0, vmax = 140)
 
             # horizontal speed
             speed = np.ma.array(ux, mask=obstacles)
-            im2 = axs[2].imshow(speed, cmap="bwr")
+            im2 = axs[2].imshow(speed, cmap="bwr", vmin = -0.5, vmax = 0.5)
 
             #Nutrients
             nutri = np.ma.array(np.sum(G,2), mask = obstacles)
-            im3 = axs[3].imshow(nutri, cmap="hot_r")
+            im3 = axs[3].imshow(nutri, cmap="hot_r", vmin = 0, vmax = 3000)
             ims.append([im0, im1, im2, im3])
 
     # Save figure
