@@ -25,11 +25,11 @@ def rgb_to_grey(rgb):
 
 
 # import borders and nutrients from an image
-def import_image(file, X, Y):
-    im = imageio.imread(file)[:Y, :X, :]
+def import_image(file, Nx, Ny):
+    im = imageio.imread(file)[:Ny, :Nx, :]
     im = rgb_to_grey(im).round()
     map_borders = np.matrix(im == 0.0)
-    map_nutrients = np.zeros((Y, X, 9))
+    map_nutrients = np.zeros((Ny, Nx, 9))
     map_nutrients[:, :, 8] = (1 - im)
 
     return map_borders, map_nutrients

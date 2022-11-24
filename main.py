@@ -45,7 +45,7 @@ def main():
 
     # Initial condition of nutrients and obstacles
     G = np.zeros((Ny, Nx, NL))
-    _, obstacles = shapes.import_image("input_images/image1.png", Nx, Ny)
+    obstacles, G = shapes.import_image("input_images/image1.png", Nx, Ny)
     X, Y = np.meshgrid(range(Nx), range(Ny))
     obstacles = (
         (Y < 1)
