@@ -19,7 +19,7 @@ def main():
     rho0 = 100  # average density
     tau = 0.65  #0.6 relaxation factor please keep it between 0.6 and 1
     taul = 0.6 # relaxation factor nutrient
-    Nt = 5000  # number of timesteps
+    Nt = 500  # number of timesteps
     icsc = 3 # see paper on biofilms 1/cs^2 -> influes on viscosity
     Lflow = 0.001
     Nflow = 1
@@ -31,7 +31,8 @@ def main():
     cxs = np.array([0, 0, 1, 1, 1, 0, -1, -1, -1])
     cys = np.array([0, 1, 1, 0, -1, -1, -1, 0, 1])
     weights = np.array(
-        [4 / 9, 1 / 9, 1 / 36, 1 / 9, 1 / 36, 1 / 9, 1 / 36, 1 / 9, 1 / 36] )  # sums to 1
+        [4 / 9, 1 / 9, 1 / 36, 1 / 9, 1 / 36, 1 / 9, 1 / 36, 1 / 9, 1 / 36]
+    )  # sums to 1
 
     # Initial Conditions
     F = np.ones((Ny, Nx, NL))  # * rho0 / NL
@@ -43,16 +44,16 @@ def main():
     for i in idxs:
         F[:, :, i] *= rho0 / rho
 
-    # Initial condition Nutrients
-    G = np.zeros((Ny,Nx,NL))
-
-    # Obstacles
+    # Initial condition of nutrients and obstacles
+    G = np.zeros((Ny, Nx, NL))
+    obstacles, G = shapes.import_image("input_images/image1.png", Nx, Ny)
     X, Y = np.meshgrid(range(Nx), range(Ny))
     obstacles = (
         (Y < 1)
         | (Ny - Y < 1)
-        | shapes.circle(X, Y, Nx / 4, Ny / 2, Ny / 8)
-        | shapes.square(X, Y, Nx / 2, Ny / 2, Ny / 2)
+        | obstacles
+        # | shapes.circle(X, Y, Nx / 4, Ny / 2, Ny / 8)
+        # | shapes.square(X, Y, Nx / 2, Ny / 2, Ny / 2)
     )
 
     # Animation parameters
@@ -65,7 +66,6 @@ def main():
         axs[i].axes.get_xaxis().set_visible(False)
         axs[i].axes.get_yaxis().set_visible(False)
     ims = []
-
 
     # Simulation Main Loop
     for it in range(Nt):
@@ -83,7 +83,7 @@ def main():
             F[:, :, i] = np.roll(F[:, :, i], cx, axis=1)
             F[:, :, i] = np.roll(F[:, :, i], cy, axis=0)
 
-         # cut the array
+        # cut the array
         F = F[:, 1:Nx+1, :]
 
          #simulate the flow -> extend the array
@@ -91,14 +91,13 @@ def main():
         G = np.pad(G,((0,0),(0,1),(0,0)))
         G[:, 0 , 3] += Nflow
 
-
         # Drift Nutrients
         for i, cx, cy, w in zip(idxs, cxs, cys, weights):
             G[:, :, i] = np.roll(G[:, :, i], cx, axis=1)
             G[:, :, i] = np.roll(G[:, :, i], cy, axis=0)
 
         # cut the array
-        G = G[:, 1:Nx+1, :]
+        G = G[:, 1 : Nx + 1, :]
 
         # Set reflective boundaries
         bndryF = F[obstacles, :]
@@ -122,21 +121,16 @@ def main():
                     + icsc * (cx * ux + cy * uy)
                     + icsc**2 * (cx * ux + cy * uy) ** 2 / 2
                     - icsc * (ux**2 + uy**2) / 2
-            ))
+                )
+            )
 
         F += -(dt / tau) * (F - Feq)
 
         # Apply collisions nutrients
         Geq = np.zeros(G.shape)
-        Cl = np.sum(G,2)
+        Cl = np.sum(G, 2)
         for i, cx, cy, w in zip(idxs, cxs, cys, weights):
-            Geq[:, :, i] = (
-                Cl
-                * w
-                * (
-                    1
-                    + icsc * (cx * ux + cy * uy)
-            ))
+            Geq[:, :, i] = Cl * w * (1 + icsc * (cx * ux + cy * uy))
 
         G += -(dt / taul) * (G - Geq)
 
@@ -149,7 +143,8 @@ def main():
 
             # vorticity
             vorticity = (np.roll(ux, -1, axis=0) - np.roll(ux, 1, axis=0)) - (
-                np.roll(uy, -1, axis=1) - np.roll(uy, 1, axis=1) )
+                np.roll(uy, -1, axis=1) - np.roll(uy, 1, axis=1)
+            )
             vorticity = np.ma.array(vorticity, mask=obstacles)
             im0 = axs[0].imshow(vorticity, cmap="bwr", label = "Vorticity", vmin = -0.3, vmax = 0.3)
 
@@ -163,19 +158,17 @@ def main():
 
             #Nutrients
             nutri = np.ma.array(np.sum(G,2), mask = obstacles)
-            im3 = axs[3].imshow(nutri, cmap="hot_r", vmin = 0, vmax = 3000)
+            im3 = axs[3].imshow(nutri, cmap="hot_r", vmin = 0, vmax = 1500)
             ims.append([im0, im1, im2, im3])
 
     # Save figure
     print("\ncreating animation")
-    ani = animation.ArtistAnimation(
-        fig, ims, interval=50, blit=True, repeat_delay=1000 )
+    ani = animation.ArtistAnimation(fig, ims, interval=50, blit=True, repeat_delay=1000)
 
     print("saving animation")
     ani.save("output.gif")
 
     return 0
-
 
 if __name__ == "__main__":
     main()
