@@ -17,11 +17,12 @@ def main():
     Nx = 400  # length
     Ny = 150  # width
     rho0 = 100  # average density
-    tau = 0.65  # 0.6 relaxation factor please keep it between 0.6 and 1
-    taul = 0.6  # relaxation factor nutrient
-    Nt = 1000  # number of timesteps
-    icsc = 3  # see paper on biofilms 1/cs^2 -> influes on viscosity
-    flow = 0.5
+    tau = 0.65  #0.6 relaxation factor please keep it between 0.6 and 1
+    taul = 0.6 # relaxation factor nutrient
+    Nt = 500  # number of timesteps
+    icsc = 3 # see paper on biofilms 1/cs^2 -> influes on viscosity
+    Lflow = 0.001
+    Nflow = 1
     dt = 1
 
     # Lattice speeds / weights for D2Q9
@@ -70,17 +71,25 @@ def main():
     for it in range(Nt):
         print("\r", it, "/", Nt, end="")
 
-        # Input new nutrients
-        G[:, 0, 3] += flow
+        #simulate the flow -> extend the array
+        F = np.pad(F, ((0,0),(1,1),(0,0)),'edge')
+        F = np.pad(F,((0,0),(0,1),(0,0)))
+        F[:,0,:] = F[:,3,:]
+        F[:,Nx+1,:] = F[:,Nx-2,:]
+        F[:,0,3] += Lflow
 
         # Drift
         for i, cx, cy, w in zip(idxs, cxs, cys, weights):
             F[:, :, i] = np.roll(F[:, :, i], cx, axis=1)
             F[:, :, i] = np.roll(F[:, :, i], cy, axis=0)
 
-        # simulate the flow -> extend the array
-        G = np.pad(G, ((0, 0), (1, 1), (0, 0)), "edge")
-        G = np.pad(G, ((0, 0), (0, 1), (0, 0)))
+        # cut the array
+        F = F[:, 1:Nx+1, :]
+
+         #simulate the flow -> extend the array
+        G = np.pad(G, ((0,0),(1,1),(0,0)),'edge')
+        G = np.pad(G,((0,0),(0,1),(0,0)))
+        G[:, 0 , 3] += Nflow
 
         # Drift Nutrients
         for i, cx, cy, w in zip(idxs, cxs, cys, weights):
@@ -137,19 +146,19 @@ def main():
                 np.roll(uy, -1, axis=1) - np.roll(uy, 1, axis=1)
             )
             vorticity = np.ma.array(vorticity, mask=obstacles)
-            im0 = axs[0].imshow(vorticity, cmap="bwr", label="Vorticity")
+            im0 = axs[0].imshow(vorticity, cmap="bwr", label = "Vorticity", vmin = -0.3, vmax = 0.3)
 
             # density
             density = np.ma.array(rho, mask=obstacles)
-            im1 = axs[1].imshow(density, cmap="Blues")
+            im1 = axs[1].imshow(density, cmap="Blues", vmin = 0, vmax = 140)
 
             # horizontal speed
             speed = np.ma.array(ux, mask=obstacles)
-            im2 = axs[2].imshow(speed, cmap="bwr")
+            im2 = axs[2].imshow(speed, cmap="bwr", vmin = -0.5, vmax = 0.5)
 
-            # Nutrients
-            nutri = np.ma.array(np.sum(G, 2), mask=obstacles)
-            im3 = axs[3].imshow(nutri, cmap="hot_r")
+            #Nutrients
+            nutri = np.ma.array(np.sum(G,2), mask = obstacles)
+            im3 = axs[3].imshow(nutri, cmap="hot_r", vmin = 0, vmax = 1500)
             ims.append([im0, im1, im2, im3])
 
     # Save figure
@@ -160,7 +169,6 @@ def main():
     ani.save("output.gif")
 
     return 0
-
 
 if __name__ == "__main__":
     main()
