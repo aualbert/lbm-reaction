@@ -158,7 +158,7 @@ def main():
 
             #Nutrients
             nutri = np.ma.array(np.sum(G,2), mask = obstacles)
-            im3 = axs[3].imshow(nutri, cmap="hot_r", vmin = 0, vmax = 1500)
+            im3 = axs[3].imshow(nutri, cmap="hot_r", vmin = 0, vmax = 3000)
 
             #Scale
             ims.append([im0, im1, im2, im3])
