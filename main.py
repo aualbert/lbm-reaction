@@ -19,7 +19,7 @@ def main():
     rho0 = 100  # average density
     tau = 0.65  #0.6 relaxation factor please keep it between 0.6 and 1
     taul = 0.6 # relaxation factor nutrient
-    Nt = 300  # number of timesteps
+    Nt = 500  # number of timesteps
     icsc = 3 # see paper on biofilms 1/cs^2 -> influes on viscosity
     Lflow = 0.001
     Nflow = 1
