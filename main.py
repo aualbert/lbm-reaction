@@ -19,7 +19,7 @@ def main():
     rho0 = 100  # average density
     tau = 0.65  #0.6 relaxation factor please keep it between 0.6 and 1
     taul = 0.6 # relaxation factor nutrient
-    Nt = 5000  # number of timesteps
+    Nt = 300  # number of timesteps
     icsc = 3 # see paper on biofilms 1/cs^2 -> influes on viscosity
     Lflow = 0.001
     Nflow = 1
@@ -159,8 +159,14 @@ def main():
             #Nutrients
             nutri = np.ma.array(np.sum(G,2), mask = obstacles)
             im3 = axs[3].imshow(nutri, cmap="hot_r", vmin = 0, vmax = 1500)
+
+            #Scale
             ims.append([im0, im1, im2, im3])
 
+    fig.colorbar(im0, ax=axs[0], location='left')
+    fig.colorbar(im1, ax=axs[1], location='left')
+    fig.colorbar(im2, ax=axs[2], location='left')
+    fig.colorbar(im3, ax=axs[3], location='left')
     # Save figure
     print("\ncreating animation")
     ani = animation.ArtistAnimation(fig, ims, interval=50, blit=True, repeat_delay=1000)
