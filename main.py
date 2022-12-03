@@ -1,9 +1,8 @@
-import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-import matplotlib.colors as colors
+import matplotlib.pyplot as plt
 import numpy as np
-import shapes
 import random as rd
+import shapes
 
 """
 Lattice Boltzmann method with arbitrary reactions to model E. coli growth.
@@ -13,18 +12,35 @@ Based on code from Philip Mocz (2020) Princeton Univeristy, @PMocz.
 
 def main():
 
-    # Simulation parameters
-    Nx = 400  # length
-    Ny = 150  # width
-    rho0 = 100  # average density
-    tau = 0.9080  #0.6 relaxation factor please keep it between 0.6 and 1
-    taul = 0.9080 # relaxation factor nutrient
-    tauc = 0.6 # relaxation factor cells
+    """
+    Simulation parameters.
+    See https://www.sciencedirect.com/science/article/pii/S0898122111004731
+    for more information on the relations between these parameters.
+    """
+    
+    """ To observe turbulences, the size of the channel should be 3x1."""
+    Nx = 450  # 10^-4 m, length of the channel
+    Ny = 150  # 10^-4 m, width of the channel
+    
+    """
+    The relaxation factor sould be contained between 0.6 and 1.
+    0.9080 is a good choice for accuracy and stability.
+    """
+    tau = 0.9080  # relaxation factor for water and nutrients
+    tau_c = 0.6  # relaxation factor for cells
+    
+    """
+    To observe laminar flow, the Reynolds number Re = UL/nu
+    should be contained between 100 and 150
+    """
+    Re = 100  # dimensionless, Reynolds number
+
     Nt = 500  # number of timesteps
-    icsc = 3 # see paper on biofilms 1/cs^2 -> influes on viscosity
+    icsc = 3  # see paper on biofilms 1/cs^2 -> influes on viscosity
     Lflow = 0.001
     Nflow = 1
     dt = 1
+    rho0 = 100  # average density for initialisation
 
     # Lattice speeds / weights for D2Q9
     NL = 9
@@ -92,21 +108,21 @@ def main():
         F[:,0,:] = F[:,3,:]
         F[:,Nx+1,:] = F[:,Nx-2,:]
         F[:,0,3] += Lflow
-
+        
         # Drift
         for i, cx, cy, w in zip(idxs, cxs, cys, weights):
             F[:, :, i] = np.roll(F[:, :, i], cx, axis=1)
             F[:, :, i] = np.roll(F[:, :, i], cy, axis=0)
 
         # cut the array
-        F = F[:, 1:Nx+1, :]
+        F = F[:, 1 : Nx + 1, :]
 
    ####### NUTRIENTS
          #simulate the flow -> extend the array
         G = np.pad(G, ((0,0),(1,1),(0,0)),'edge')
         G = np.pad(G,((0,0),(0,1),(0,0)))
         G[:, 0 , 3] += Nflow
-
+        
         # Drift Nutrients
         for i, cx, cy, w in zip(idxs, cxs, cys, weights):
             G[:, :, i] = np.roll(G[:, :, i], cx, axis=1)
@@ -165,7 +181,7 @@ def main():
         for i, cx, cy, w in zip(idxs, cxs, cys, weights):
             Geq[:, :, i] = Cl * w * (1 + icsc * (cx * ux + cy * uy))
 
-        G += -(dt / taul) * (G - Geq)
+        G += -(dt / tau_n) * (G - Geq)
 
         # Apply collisions cells
         Ceq = np.zeros(C.shape)
@@ -195,19 +211,21 @@ def main():
                 np.roll(uy, -1, axis=1) - np.roll(uy, 1, axis=1)
             )
             vorticity = np.ma.array(vorticity, mask=obstacles)
-            im0 = axs[0].imshow(vorticity, cmap="bwr", label = "Vorticity", vmin = -0.3, vmax = 0.3)
+            im0 = axs[0].imshow(
+                vorticity, cmap="bwr", label="Vorticity", vmin=-0.3, vmax=0.3
+            )
 
             # density
             density = np.ma.array(rho, mask=obstacles)
-            im1 = axs[1].imshow(density, cmap="Blues", vmin = 0, vmax = 140)
+            im1 = axs[1].imshow(density, cmap="Blues", vmin=0, vmax=140)
 
             # horizontal speed
             speed = np.ma.array(ux, mask=obstacles)
-            im2 = axs[2].imshow(speed, cmap="bwr", vmin = -0.5, vmax = 0.5)
+            im2 = axs[2].imshow(speed, cmap="bwr", vmin=-0.5, vmax=0.5)
 
-            #Nutrients
-            nutri = np.ma.array(np.sum(G,2), mask = obstacles)
-            im3 = axs[3].imshow(nutri, cmap="hot_r", vmin = 0, vmax = 3000)
+            # Nutrients
+            nutri = np.ma.array(np.sum(G, 2), mask=obstacles)
+            im3 = axs[3].imshow(nutri, cmap="hot_r", vmin=0, vmax=3000)
 
             #Cells
             cells = np.ma.array(np.sum(C,2), mask = obstacles)
@@ -228,6 +246,7 @@ def main():
     ani.save("output.gif")
 
     return 0
+
 
 if __name__ == "__main__":
     main()
