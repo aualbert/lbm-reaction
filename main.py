@@ -17,8 +17,9 @@ def main():
     Nx = 400  # length
     Ny = 150  # width
     rho0 = 100  # average density
-    tau = 0.65  #0.6 relaxation factor please keep it between 0.6 and 1
-    taul = 0.6 # relaxation factor nutrient
+    tau = 0.9080  #0.6 relaxation factor please keep it between 0.6 and 1
+    taul = 0.9080 # relaxation factor nutrient
+    tauc = 0.6 # relaxation factor cells
     Nt = 500  # number of timesteps
     icsc = 3 # see paper on biofilms 1/cs^2 -> influes on viscosity
     Lflow = 0.001
@@ -218,7 +219,8 @@ def main():
     fig.colorbar(im1, ax=axs[1], location='left')
     fig.colorbar(im2, ax=axs[2], location='left')
     fig.colorbar(im3, ax=axs[3], location='left')
-    # Save figure
+    fig.colorbar(im4, ax=axs[4], location='left')
+   # Save figure
     print("\ncreating animation")
     ani = animation.ArtistAnimation(fig, ims, interval=50, blit=True, repeat_delay=1000)
 
