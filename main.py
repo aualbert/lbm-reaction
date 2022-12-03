@@ -25,7 +25,8 @@ def main():
     Lflow = 0.001
     Nflow = 1
     dt = 1
-
+    alpha = 0.00001 # coefficient of cell volume over buckets volume
+    beta = 0.0001  #coefficient for reflection of water on cells
     # Lattice speeds / weights for D2Q9
     NL = 9
     idxs = np.arange(NL)
@@ -139,9 +140,11 @@ def main():
 
 
         # Calculate fluid variables
+        ##rho = np.multiply (np.sum(F, 2), (1 + alpha * np.sum(C,2)))
         rho = np.sum(F, 2)
         ux = np.sum(F * cxs, 2) / rho
         uy = np.sum(F * cys, 2) / rho
+
 
         # Apply Collision
         Feq = np.zeros(F.shape)
@@ -186,6 +189,13 @@ def main():
         F[obstacles, :] = bndryF
         G[obstacles, :] = bndryG
         C[obstacles, :] = bndryC
+
+        # bounce of water on cells
+        cellsConcentration = np.sum(C,2)
+        cc = np.empty((Ny,Nx,NL))
+        for i in range (NL):
+            cc[:,:,i] = cellsConcentration
+        F =  np.multiply ((1 - beta * cc), F)  + beta * np.multiply (cc, F[:,:, [0, 5, 6, 7, 8, 1, 2, 3, 4]])
 
         # Plot every 10 steps
         if (it % 10) == 0:
