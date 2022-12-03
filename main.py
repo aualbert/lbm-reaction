@@ -13,21 +13,28 @@ Based on code from Philip Mocz (2020) Princeton Univeristy, @PMocz.
 def main():
 
     """
-    Simulation parameters.
+    Simulation parameters for the 2DQ9 model.
     See https://www.sciencedirect.com/science/article/pii/S0898122111004731
     for more information on the relations between these parameters.
     """
     
-    """ To observe turbulences, the size of the channel should be 3x1."""
+    """
+    To observe turbulences, the size of the channel should be 3x1.
+    """
     Nx = 450  # 10^-4 m, length of the channel
     Ny = 150  # 10^-4 m, width of the channel
-    
+    dx = 1  # 10^-4 m, lattice spacing
+    L = 40  # ~ 10^-4 m, caracteristic size of obstacles
+
+    Nt = 500  # dimensionless, number of steps
+    dt = 1  # s, simulation timestep
+
     """
     The relaxation factor sould be contained between 0.6 and 1.
     0.9080 is a good choice for accuracy and stability.
     """
     tau = 0.9080  # relaxation factor for water and nutrients
-    tau_c = 0.6  # relaxation factor for cells
+    tau_cell = 0.6  # relaxation factor for cells
     
     """
     To observe laminar flow, the Reynolds number Re = UL/nu
@@ -35,21 +42,19 @@ def main():
     """
     Re = 100  # dimensionless, Reynolds number
 
-    Nt = 500  # number of timesteps
-    icsc = 3  # see paper on biofilms 1/cs^2 -> influes on viscosity
-    Lflow = 0.001
-    Nflow = 1
-    dt = 1
-    rho0 = 100  # average density for initialisation
-
-    # Lattice speeds / weights for D2Q9
-    NL = 9
-    idxs = np.arange(NL)
-    cxs = np.array([0, 0, 1, 1, 1, 0, -1, -1, -1])
-    cys = np.array([0, 1, 1, 0, -1, -1, -1, 0, 1])
+    c = dx / dt  # 10^-4 m/s, lattice speed
+    NL = 9  # dimensionless, number of directions
+    idxs = np.arange(NL)  # array of dimensions
+    cxs = c * np.array([0, 0, 1, 1, 1, 0, -1, -1, -1])  # horizontal speeds
+    cys = c * np.array([0, 1, 1, 0, -1, -1, -1, 0, 1])  # vertical speeds
     weights = np.array(
         [4 / 9, 1 / 9, 1 / 36, 1 / 9, 1 / 36, 1 / 9, 1 / 36, 1 / 9, 1 / 36]
     )  # sums to 1
+
+    Lflow = 0.001
+    Nflow = 1
+
+    rho0 = 100  # average density for initialisation
 
     # Initial Conditions
     F = np.ones((Ny, Nx, NL))  # * rho0 / NL
@@ -167,9 +172,9 @@ def main():
                 * w
                 * (
                     1
-                    + icsc * (cx * ux + cy * uy)
-                    + icsc**2 * (cx * ux + cy * uy) ** 2 / 2
-                    - icsc * (ux**2 + uy**2) / 2
+                    + 3 * (cx * ux + cy * uy)
+                    + (9 * (cx * ux + cy * uy) ** 2) / 2
+                    - 3 * (ux**2 + uy**2) / 2
                 )
             )
 
@@ -179,9 +184,9 @@ def main():
         Geq = np.zeros(G.shape)
         Cl = np.sum(G, 2)
         for i, cx, cy, w in zip(idxs, cxs, cys, weights):
-            Geq[:, :, i] = Cl * w * (1 + icsc * (cx * ux + cy * uy))
+            Geq[:, :, i] = Cl * w * (1 + 3 * (cx * ux + cy * uy))
 
-        G += -(dt / tau_n) * (G - Geq)
+        G += -(dt / tau) * (G - Geq)
 
         # Apply collisions cells
         Ceq = np.zeros(C.shape)
