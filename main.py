@@ -20,13 +20,15 @@ def main():
     tau = 0.9080  #0.6 relaxation factor please keep it between 0.6 and 1
     taul = 0.9080 # relaxation factor nutrient
     tauc = 0.6 # relaxation factor cells
-    Nt = 500  # number of timesteps
+    Nt = 5000  # number of timesteps
     icsc = 3 # see paper on biofilms 1/cs^2 -> influes on viscosity
     Lflow = 0.001
-    Nflow = 1
+    Nflow = 0.01
     dt = 1
-    alpha = 0.00001 # coefficient of cell volume over buckets volume
-    beta = 0.0001  #coefficient for reflection of water on cells
+    alpha = 0.000001 # coefficient of cell volume over buckets volume (about 10 -6)
+    beta = 0.0001  #coefficient for reflection of water on cells (about 10^-4)
+    gammaReproduction = 0.001 # fractions of cells to reproduce
+    gammaDeath = 0.0001 #fractions of cells to die
     # Lattice speeds / weights for D2Q9
     NL = 9
     idxs = np.arange(NL)
@@ -49,18 +51,21 @@ def main():
     # Initial condition Nutrients and cells
     G = np.zeros((Ny,Nx,NL))
     C = np.zeros((Ny,Nx,NL))
-    for x in range((Nx//2 + Ny//4), (Nx//2 + Ny//4 + Nx//10)):
-        for y in range ((Ny//2 - Ny//10),(Ny//2 + Ny//10)):
+    for x in range(50,100):
+        for y in range (50,100):
             C[y,x,:] = 1
-    for x in range((Ny//4), (Ny//4 + Nx//10)):
-        for y in range ((Ny//3 - Ny//10),(Ny//3 + Ny//10)):
-            C[y,x,:] = 1
-    for x in range(5, Nx//10):
-        for y in range ((2 * Ny//3 - Ny//10),(2* Ny//3 + Ny//10)):
-            C[y,x,:] = 1
+    # for x in range((Ny//4), (Ny//4 + Nx//10)):
+    #     for y in range ((Ny//3 - Ny//10),(Ny//3 + Ny//10)):
+    #         C[y,x,:] = 1
+    # for x in range(5, Nx//10):
+    #     for y in range ((2 * Ny//3 - Ny//10),(2* Ny//3 + Ny//10)):
+    #         C[y,x,:] = 1
+    # for x in range(Nx//2 - Ny // 10 , Nx//2 + Nx//10):
+    #     for y in range ((Ny//2 - Ny//10),(Ny//2 + Ny//10)):
+    #         C[y,x,:] = 1
 
     # Obstacles
-    obstacles, G = shapes.import_image("input_images/image1.png", Nx, Ny)
+    obstacles, G = shapes.import_image("input_images/image7.png", Nx, Ny)
 
     X, Y = np.meshgrid(range(Nx), range(Ny))
     obstacles = (
@@ -140,8 +145,8 @@ def main():
 
 
         # Calculate fluid variables
-        ##rho = np.multiply (np.sum(F, 2), (1 + alpha * np.sum(C,2)))
-        rho = np.sum(F, 2)
+        rho = np.multiply (np.sum(F, 2), (1 + alpha * np.sum(C,2)))
+        ##rho = np.sum(F, 2)
         ux = np.sum(F * cxs, 2) / rho
         uy = np.sum(F * cys, 2) / rho
 
@@ -197,6 +202,17 @@ def main():
             cc[:,:,i] = cellsConcentration
         F =  np.multiply ((1 - beta * cc), F)  + beta * np.multiply (cc, F[:,:, [0, 5, 6, 7, 8, 1, 2, 3, 4]])
 
+
+        # Simulate the feeding and reproductions of bacterias
+        nbOfNewBacteria = np.minimum(C,G) * gammaReproduction
+        #print(nbOfNewBacteria)
+        C += nbOfNewBacteria
+        G -= nbOfNewBacteria
+
+        # Simulate the death of cells
+        nbOfDeadBacteria = C * gammaDeath
+        C -= nbOfDeadBacteria
+
         # Plot every 10 steps
         if (it % 10) == 0:
 
@@ -217,7 +233,7 @@ def main():
 
             #Nutrients
             nutri = np.ma.array(np.sum(G,2), mask = obstacles)
-            im3 = axs[3].imshow(nutri, cmap="hot_r", vmin = 0, vmax = 3000)
+            im3 = axs[3].imshow(nutri, cmap="hot_r", vmin = 0, vmax = 30)
 
             #Cells
             cells = np.ma.array(np.sum(C,2), mask = obstacles)
