@@ -25,39 +25,40 @@ def main():
     Ny = 150  # 10^-4 m, width of the channel
     dx = 1  # 10^-4 m, lattice spacing
     L = 40  # ~ 10^-4 m, caracteristic size of obstacles
-
-    Nt = 500  # dimensionless, number of steps
-    dt = 1  # s, simulation timestep
+    Nt = 500  # number of steps
+    dt = 1  # 10^-3 s, simulation timestep
 
     """
-    The relaxation factor sould be contained between 0.6 and 1.
+    The relaxation factor for fluid sould be contained between 0.6 and 1.
     0.9080 is a good choice for accuracy and stability.
     """
-    tau = 0.9080  # relaxation factor for water and nutrients
-    tau_cell = 0.6  # relaxation factor for cells
-    
+    tau = 0.9080  # 10^-1 s, relaxation factor for fluid and disolved nutrients
+    nu = tau - 1 / 2  # (* c^2) 10^-9 m^2/s, kinematic viscosity
+    tau_cell = 0.6  # 10^-1 s, relaxation factor for cells
+
     """
-    To observe laminar flow, the Reynolds number Re = UL/nu
-    should be contained between 100 and 150
+    To observe laminar flow, the Reynolds number
+    should be contained between 100 and 150.
+    It is not yet clear how it relates to the initial density
     """
-    Re = 100  # dimensionless, Reynolds number
+    Re = 100  # dimensionless, Reynolds number, Re = VL/nu
+    V = (Re * nu) / L  # 10^-5 m/s caracteristic speed of the fluid
 
-    c = dx / dt  # 10^-4 m/s, lattice speed
-    NL = 9  # dimensionless, number of directions
-    idxs = np.arange(NL)  # array of dimensions
-    cxs = c * np.array([0, 0, 1, 1, 1, 0, -1, -1, -1])  # horizontal speeds
-    cys = c * np.array([0, 1, 1, 0, -1, -1, -1, 0, 1])  # vertical speeds
-    weights = np.array(
-        [4 / 9, 1 / 9, 1 / 36, 1 / 9, 1 / 36, 1 / 9, 1 / 36, 1 / 9, 1 / 36]
-    )  # sums to 1
+    """
+    For the simulation not to break, flow << 1 is required.
+    """
+    flow = 0.001  # quantity of fluid particules flowing in at each step
+    flow_nut = 0.5  # quantity of nutrient particles flowing in at each step 
 
-    Lflow = 0.001
-    Nflow = 1
-
+    """
+    Initial conditions.
+    """
     rho0 = 100  # average density for initialisation
+    F = np.ones((Ny, Nx, NL))  # fluid
+    G = np.zeros((Ny, Nx, NL))  # nutrients
+    C = np.zeros((Ny,Nx,NL))
 
-    # Initial Conditions
-    F = np.ones((Ny, Nx, NL))  # * rho0 / NL
+    # Initialisation of fluid
     np.random.seed(40)
     F += 0.1 * np.random.randn(Ny, Nx, NL)
     X, Y = np.meshgrid(range(Nx), range(Ny))
@@ -66,9 +67,9 @@ def main():
     for i in idxs:
         F[:, :, i] *= rho0 / rho
 
-    # Initial condition Nutrients and cells
+    # Initialisation of cells
     G = np.zeros((Ny,Nx,NL))
-    C = np.zeros((Ny,Nx,NL))
+
     for x in range((Nx//2 + Ny//4), (Nx//2 + Ny//4 + Nx//10)):
         for y in range ((Ny//2 - Ny//10),(Ny//2 + Ny//10)):
             C[y,x,:] = 1
@@ -79,9 +80,8 @@ def main():
         for y in range ((2 * Ny//3 - Ny//10),(2* Ny//3 + Ny//10)):
             C[y,x,:] = 1
 
-    # Obstacles
+    # Initialisation of nutrients and obstacles
     obstacles, G = shapes.import_image("input_images/image1.png", Nx, Ny)
-
     X, Y = np.meshgrid(range(Nx), range(Ny))
     obstacles = (
         (Y < 1)
@@ -91,9 +91,11 @@ def main():
         # | shapes.square(X, Y, Nx / 2, Ny / 2, Ny / 2)
     )
 
-    # Animation parameters
-    labels = ["Vorticity", "Density", "Horizontal Speed", "Nutrients Concentration", "Cells concentration"]
-    fig, axs = plt.subplots(5)
+    """
+    Animation parameters
+    """
+    labels = ["Vorticity", "Density", "Horizontal Speed", "Nutrients Concentration"]
+    fig, axs = plt.subplots(4)
     plt.tight_layout()
     for i in range(5):
         axs[i].imshow(~obstacles, cmap="gray", alpha=0.3)
@@ -102,33 +104,39 @@ def main():
         axs[i].axes.get_yaxis().set_visible(False)
     ims = []
 
-    # Simulation Main Loop
+    """
+    Simulation main loop
+    """
     for it in range(Nt):
         print("\r", it, "/", Nt, end="")
 
-  ######## FLUID
-        #simulate the flow -> extend the array
-        F = np.pad(F, ((0,0),(1,1),(0,0)),'edge')
-        F = np.pad(F,((0,0),(0,1),(0,0)))
-        F[:,0,:] = F[:,3,:]
-        F[:,Nx+1,:] = F[:,Nx-2,:]
-        F[:,0,3] += Lflow
-        
-        # Drift
+        """
+        Drifting fluid
+        """
+        # simulate the flow -> extend the array
+        F = np.pad(F, ((0, 0), (1, 1), (0, 0)), "edge")
+        F = np.pad(F, ((0, 0), (0, 1), (0, 0)))
+        F[:, 0, :] = F[:, 3, :]
+        F[:, Nx + 1, :] = F[:, Nx - 2, :]
+        F[:, 0, 3] += flow
+
+        # Drift fluid particles
         for i, cx, cy, w in zip(idxs, cxs, cys, weights):
             F[:, :, i] = np.roll(F[:, :, i], cx, axis=1)
             F[:, :, i] = np.roll(F[:, :, i], cy, axis=0)
 
         # cut the array
         F = F[:, 1 : Nx + 1, :]
+    
+        """
+        Drifting nutrients
+        """
+        # simulate the flow -> extend the array
+        G = np.pad(G, ((0, 0), (1, 1), (0, 0)), "edge")
+        G = np.pad(G, ((0, 0), (0, 1), (0, 0)))
+        G[:, 0, 3] += flow_nut
 
-   ####### NUTRIENTS
-         #simulate the flow -> extend the array
-        G = np.pad(G, ((0,0),(1,1),(0,0)),'edge')
-        G = np.pad(G,((0,0),(0,1),(0,0)))
-        G[:, 0 , 3] += Nflow
-        
-        # Drift Nutrients
+        # Drift nutrients
         for i, cx, cy, w in zip(idxs, cxs, cys, weights):
             G[:, :, i] = np.roll(G[:, :, i], cx, axis=1)
             G[:, :, i] = np.roll(G[:, :, i], cy, axis=0)
@@ -136,7 +144,9 @@ def main():
         # cut the array
         G = G[:, 1 : Nx + 1, :]
 
-   ######## CELLS
+        """
+        Drifting cells
+        """
         #simulate the flow -> extend the array
         C = np.pad(C, ((0,0),(1,1),(0,0)),'edge')
         C = np.pad(C,((0,0),(0,1),(0,0)))
@@ -149,7 +159,9 @@ def main():
         # cut the array
         C = C[:, 1:Nx+1, :]
 
-
+        """
+        Colisions
+        """
         # Set reflective boundaries
         bndryF = F[obstacles, :]
         bndryF = bndryF[:, [0, 5, 6, 7, 8, 1, 2, 3, 4]]
@@ -157,7 +169,6 @@ def main():
         bndryG = bndryG[:, [0, 5, 6, 7, 8, 1, 2, 3, 4]]
         bndryC = C[obstacles, :]
         bndryC = bndryC[:, [0, 5, 6, 7, 8, 1, 2, 3, 4]]
-
 
         # Calculate fluid variables
         rho = np.sum(F, 2)
@@ -208,7 +219,9 @@ def main():
         G[obstacles, :] = bndryG
         C[obstacles, :] = bndryC
 
-        # Plot every 10 steps
+        """
+        Simulation plotting every 10 steps
+        """
         if (it % 10) == 0:
 
             # vorticity
@@ -238,12 +251,15 @@ def main():
 
             ims.append([im0, im1, im2, im3, im4])
 
+    """
+    Saving animation
+    """
     fig.colorbar(im0, ax=axs[0], location='left')
     fig.colorbar(im1, ax=axs[1], location='left')
     fig.colorbar(im2, ax=axs[2], location='left')
     fig.colorbar(im3, ax=axs[3], location='left')
     fig.colorbar(im4, ax=axs[4], location='left')
-   # Save figure
+
     print("\ncreating animation")
     ani = animation.ArtistAnimation(fig, ims, interval=50, blit=True, repeat_delay=1000)
 
@@ -251,7 +267,6 @@ def main():
     ani.save("output.gif")
 
     return 0
-
 
 if __name__ == "__main__":
     main()
