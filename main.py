@@ -17,7 +17,7 @@ def main():
     See https://www.sciencedirect.com/science/article/pii/S0898122111004731
     for more information on the relations between these parameters.
     """
-    
+
     """
     To observe turbulences, the size of the channel should be 3x1.
     """
@@ -25,8 +25,17 @@ def main():
     Ny = 150  # 10^-4 m, width of the channel
     dx = 1  # 10^-4 m, lattice spacing
     L = 40  # ~ 10^-4 m, caracteristic size of obstacles
+
     Nt = 500  # number of steps
     dt = 1  # 10^-3 s, simulation timestep
+
+    NL = 9  # number of directions
+    idxs = np.arange(NL)
+    cxs = np.array([0, 0, 1, 1, 1, 0, -1, -1, -1])
+    cys = np.array([0, 1, 1, 0, -1, -1, -1, 0, 1])
+    weights = np.array(
+        [4 / 9, 1 / 9, 1 / 36, 1 / 9, 1 / 36, 1 / 9, 1 / 36, 1 / 9, 1 / 36]
+    )  # sums to 1
 
     """
     The relaxation factor for fluid sould be contained between 0.6 and 1.
@@ -48,7 +57,7 @@ def main():
     For the simulation not to break, flow << 1 is required.
     """
     flow = 0.001  # quantity of fluid particules flowing in at each step
-    flow_nut = 0.5  # quantity of nutrient particles flowing in at each step 
+    flow_nut = 0.5  # quantity of nutrient particles flowing in at each step
 
     """
     Initial conditions.
@@ -56,7 +65,7 @@ def main():
     rho0 = 100  # average density for initialisation
     F = np.ones((Ny, Nx, NL))  # fluid
     G = np.zeros((Ny, Nx, NL))  # nutrients
-    C = np.zeros((Ny,Nx,NL))
+    C = np.zeros((Ny, Nx, NL))
 
     # Initialisation of fluid
     np.random.seed(40)
@@ -68,17 +77,15 @@ def main():
         F[:, :, i] *= rho0 / rho
 
     # Initialisation of cells
-    G = np.zeros((Ny,Nx,NL))
-
-    for x in range((Nx//2 + Ny//4), (Nx//2 + Ny//4 + Nx//10)):
-        for y in range ((Ny//2 - Ny//10),(Ny//2 + Ny//10)):
-            C[y,x,:] = 1
-    for x in range((Ny//4), (Ny//4 + Nx//10)):
-        for y in range ((Ny//3 - Ny//10),(Ny//3 + Ny//10)):
-            C[y,x,:] = 1
-    for x in range(5, Nx//10):
-        for y in range ((2 * Ny//3 - Ny//10),(2* Ny//3 + Ny//10)):
-            C[y,x,:] = 1
+    for x in range((Nx // 2 + Ny // 4), (Nx // 2 + Ny // 4 + Nx // 10)):
+        for y in range((Ny // 2 - Ny // 10), (Ny // 2 + Ny // 10)):
+            C[y, x, :] = 1
+    for x in range((Ny // 4), (Ny // 4 + Nx // 10)):
+        for y in range((Ny // 3 - Ny // 10), (Ny // 3 + Ny // 10)):
+            C[y, x, :] = 1
+    for x in range(5, Nx // 10):
+        for y in range((2 * Ny // 3 - Ny // 10), (2 * Ny // 3 + Ny // 10)):
+            C[y, x, :] = 1
 
     # Initialisation of nutrients and obstacles
     obstacles, G = shapes.import_image("input_images/image1.png", Nx, Ny)
@@ -94,8 +101,14 @@ def main():
     """
     Animation parameters
     """
-    labels = ["Vorticity", "Density", "Horizontal Speed", "Nutrients Concentration"]
-    fig, axs = plt.subplots(4)
+    labels = [
+        "Vorticity",
+        "Density",
+        "Horizontal Speed",
+        "Nutrients Concentration",
+        "Cells concentration",
+    ]
+    fig, axs = plt.subplots(5)
     plt.tight_layout()
     for i in range(5):
         axs[i].imshow(~obstacles, cmap="gray", alpha=0.3)
@@ -127,7 +140,7 @@ def main():
 
         # cut the array
         F = F[:, 1 : Nx + 1, :]
-    
+
         """
         Drifting nutrients
         """
@@ -147,9 +160,9 @@ def main():
         """
         Drifting cells
         """
-        #simulate the flow -> extend the array
-        C = np.pad(C, ((0,0),(1,1),(0,0)),'edge')
-        C = np.pad(C,((0,0),(0,1),(0,0)))
+        # simulate the flow -> extend the array
+        C = np.pad(C, ((0, 0), (1, 1), (0, 0)), "edge")
+        C = np.pad(C, ((0, 0), (0, 1), (0, 0)))
 
         # Drift
         for i, cx, cy, w in zip(idxs, cxs, cys, weights):
@@ -157,7 +170,7 @@ def main():
             C[:, :, i] = np.roll(C[:, :, i], cy, axis=0)
 
         # cut the array
-        C = C[:, 1:Nx+1, :]
+        C = C[:, 1 : Nx + 1, :]
 
         """
         Colisions
@@ -201,18 +214,11 @@ def main():
 
         # Apply collisions cells
         Ceq = np.zeros(C.shape)
-        Clc = np.sum(C,2)
+        Clc = np.sum(C, 2)
         for i, cx, cy, w in zip(idxs, cxs, cys, weights):
-            Ceq[:, :, i] = (
-                Clc
-                * w
-                * (
-                    1
-                    + icsc * (cx * ux + cy * uy)
-            ))
+            Ceq[:, :, i] = Clc * w * (1 + 3 * (cx * ux + cy * uy))
 
-        C += -(dt / tauc) * (C - Ceq)
-
+        C += -(dt / tau_cell) * (C - Ceq)
 
         # Apply boundary
         F[obstacles, :] = bndryF
@@ -245,20 +251,20 @@ def main():
             nutri = np.ma.array(np.sum(G, 2), mask=obstacles)
             im3 = axs[3].imshow(nutri, cmap="hot_r", vmin=0, vmax=3000)
 
-            #Cells
-            cells = np.ma.array(np.sum(C,2), mask = obstacles)
-            im4 = axs[4].imshow(cells, cmap="ocean_r",vmin = 0, vmax = 15)
+            # Cells
+            cells = np.ma.array(np.sum(C, 2), mask=obstacles)
+            im4 = axs[4].imshow(cells, cmap="ocean_r", vmin=0, vmax=15)
 
             ims.append([im0, im1, im2, im3, im4])
 
     """
     Saving animation
     """
-    fig.colorbar(im0, ax=axs[0], location='left')
-    fig.colorbar(im1, ax=axs[1], location='left')
-    fig.colorbar(im2, ax=axs[2], location='left')
-    fig.colorbar(im3, ax=axs[3], location='left')
-    fig.colorbar(im4, ax=axs[4], location='left')
+    fig.colorbar(im0, ax=axs[0], location="left")
+    fig.colorbar(im1, ax=axs[1], location="left")
+    fig.colorbar(im2, ax=axs[2], location="left")
+    fig.colorbar(im3, ax=axs[3], location="left")
+    fig.colorbar(im4, ax=axs[4], location="left")
 
     print("\ncreating animation")
     ani = animation.ArtistAnimation(fig, ims, interval=50, blit=True, repeat_delay=1000)
@@ -267,6 +273,7 @@ def main():
     ani.save("output.gif")
 
     return 0
+
 
 if __name__ == "__main__":
     main()
