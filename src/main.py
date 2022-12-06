@@ -2,7 +2,6 @@ import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
 import random as rd
-import shapes
 
 """
 Lattice Boltzmann method with arbitrary reactions to model E. coli growth.
@@ -10,33 +9,20 @@ Based on code from Philip Mocz (2020) Princeton Univeristy, @PMocz.
 """
 
 
-def main():
-
-
+def run_simulation(Nx: int, Ny: int, Nt: int, obstacles, species, cells, save_path):
     """
-    Simulation parameters for the 2DQ9 model.
-    See https://www.sciencedirect.com/science/article/pii/S0898122111004731
-    for more information on the relations between these parameters.
-    """
+    Simulation of the Lattice Boltzmann 2DQ9 model
+    with arbitrary reactions between species and cells.
 
-    """
     To observe turbulences, the size of the channel should be 3x1.
     """
-    Nx = 450  # 10^-4 m, length of the channel
-    Ny = 150  # 10^-4 m, width of the channel
-    dx = 1  # 10^-4 m, lattice spacing
+
+    Nx = Nx  # 10^-4 m, length of the channel
+    Ny = Ny  # 10^-4 m, width of the channel
     L = 40  # ~ 10^-4 m, caracteristic size of obstacles
-
-    Nt = 5000  # number of steps
+    dx = 1  # 10^-4 m, lattice spacing
+    Nt = Nt  # number of steps
     dt = 1  # 10^-3 s, simulation timestep
-
-    """
-    Coefficients for cells and nutrients behaviours
-    """
-    alpha = 0.000001 # coefficient of cell volume over buckets volume (about 10 -6)
-    beta = 0.0001  # coefficient for reflection of water on cells (about 10^-4)
-    gammaReproduction = 0.001 # fractions of cells to reproduce
-    gammaDeath = 0.0001 # fractions of cells to die
 
     NL = 9  # number of directions
     idxs = np.arange(NL)
@@ -45,6 +31,14 @@ def main():
     weights = np.array(
         [4 / 9, 1 / 9, 1 / 36, 1 / 9, 1 / 36, 1 / 9, 1 / 36, 1 / 9, 1 / 36]
     )  # sums to 1
+
+    """
+    Coefficients for cells and nutrients behaviours
+    """
+    alpha = 0.000001  # coefficient of cell volume over buckets volume (about 10 -6)
+    beta = 0.0001  # coefficient for reflection of water on cells (about 10^-4)
+    gammaReproduction = 0.001  # fractions of cells to reproduce
+    gammaDeath = 0.0001  # fractions of cells to die
 
     """
     The relaxation factor for fluid sould be contained between 0.6 and 1.
@@ -74,36 +68,25 @@ def main():
     rho0 = 100  # average density for initialisation
     F = np.ones((Ny, Nx, NL))  # fluid
     G = np.zeros((Ny, Nx, NL))  # nutrients
-    C = np.zeros((Ny, Nx, NL)) # cells
+    C = np.zeros((Ny, Nx, NL))  # cells
 
     # Initialisation of fluid
     np.random.seed(40)
     F += 0.1 * np.random.randn(Ny, Nx, NL)
-    X, Y = np.meshgrid(range(Nx), range(Ny))
     F[:, :, 3] += 2 * (1 + 0.2 * rd.random())
     rho = np.sum(F, 2)
     for i in idxs:
         F[:, :, i] *= rho0 / rho
 
     # Initialisation of cells
-    for x in range(50,100):
-        for y in range (50,100):
-            C[y,x,:] = 1
+    for x in range(50, 100):
+        for y in range(50, 100):
+            C[y, x, :] = 1
 
-    # Initialisation of nutrients and obstacles
-    obstacles, G = shapes.import_image("input_images/image7.png", Nx, Ny)
     X, Y = np.meshgrid(range(Nx), range(Ny))
-    obstacles = (
-        (Y < 1)
-        | (Ny - Y < 1)
-        | obstacles
-        # | shapes.circle(X, Y, Nx / 4, Ny / 2, Ny / 8)
-        # | shapes.square(X, Y, Nx / 2, Ny / 2, Ny / 2)
-    )
+    obstacles = (Y < 1) | (Ny - Y < 1)
+    # Animation parameters
 
-    """
-    Animation parameters
-    """
     labels = [
         "Vorticity",
         "Density",
@@ -187,11 +170,10 @@ def main():
         bndryC = bndryC[:, [0, 5, 6, 7, 8, 1, 2, 3, 4]]
 
         # Calculate fluid variables
-        rho = np.multiply (np.sum(F, 2), (1 + alpha * np.sum(C,2)))
+        rho = np.multiply(np.sum(F, 2), (1 + alpha * np.sum(C, 2)))
         ##rho = np.sum(F, 2)
         ux = np.sum(F * cxs, 2) / rho
         uy = np.sum(F * cys, 2) / rho
-
 
         # Apply Collision
         Feq = np.zeros(F.shape)
@@ -231,23 +213,23 @@ def main():
         C[obstacles, :] = bndryC
 
         # bounce of water on cells
-        cellsConcentration = np.sum(C,2)
-        cc = np.empty((Ny,Nx,NL))
-        for i in range (NL):
-            cc[:,:,i] = cellsConcentration
-        F =  np.multiply ((1 - beta * cc), F)  + beta * np.multiply (cc, F[:,:, [0, 5, 6, 7, 8, 1, 2, 3, 4]])
-
+        cellsConcentration = np.sum(C, 2)
+        cc = np.empty((Ny, Nx, NL))
+        for i in range(NL):
+            cc[:, :, i] = cellsConcentration
+        F = np.multiply((1 - beta * cc), F) + beta * np.multiply(
+            cc, F[:, :, [0, 5, 6, 7, 8, 1, 2, 3, 4]]
+        )
 
         # Simulate the feeding and reproductions of bacterias
-        nbOfNewBacteria = np.minimum(C,G) * gammaReproduction
-        #print(nbOfNewBacteria)
+        nbOfNewBacteria = np.minimum(C, G) * gammaReproduction
+        # print(nbOfNewBacteria)
         C += nbOfNewBacteria
         G -= nbOfNewBacteria
 
         # Simulate the death of cells
         nbOfDeadBacteria = C * gammaDeath
         C -= nbOfDeadBacteria
-
 
         """
         Simulation plotting every 10 steps
@@ -271,9 +253,9 @@ def main():
             speed = np.ma.array(ux, mask=obstacles)
             im2 = axs[2].imshow(speed, cmap="bwr", vmin=-0.5, vmax=0.5)
 
-            #Nutrients
-            nutri = np.ma.array(np.sum(G,2), mask = obstacles)
-            im3 = axs[3].imshow(nutri, cmap="hot_r", vmin = 0, vmax = 30)
+            # Nutrients
+            nutri = np.ma.array(np.sum(G, 2), mask=obstacles)
+            im3 = axs[3].imshow(nutri, cmap="hot_r", vmin=0, vmax=30)
 
             # Cells
             cells = np.ma.array(np.sum(C, 2), mask=obstacles)
@@ -294,10 +276,6 @@ def main():
     ani = animation.ArtistAnimation(fig, ims, interval=50, blit=True, repeat_delay=1000)
 
     print("saving animation")
-    ani.save("output.gif")
+    ani.save(save_path)
 
     return 0
-
-
-if __name__ == "__main__":
-    main()

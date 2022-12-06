@@ -13,7 +13,15 @@
       in {
         devShells.default = pkgs.mkShell {
           name = "blm-reaction-dev";
-          packages = [ pkgs.ffmpeg python packages.matplotlib packages.numpy packages.imageio ];
+          packages = [
+            pkgs.ffmpeg
+            python
+            packages.matplotlib
+            packages.numpy
+            packages.imageio
+            packages.tomli
+	    packages.numba
+          ];
         };
       });
 }
