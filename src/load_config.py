@@ -23,8 +23,6 @@ def import_image(image, species, cells, Nx, Ny):
         )
         return lattice
 
-    times = lambda n, a: n * a
-
     # get species
     species = list(map(lambda a: 25 * a, map(get_color, species)))
 
