@@ -8,13 +8,14 @@ what was done (question, problems, solutions), was could be improved
 ## E. coli modelization 
 what was done (question, problems, solutions), other envisioned models, what is done in the literature
 
-## Running the simulation
+## Usage 
 
 #### Requirements
 With nix installed, simply type `nix develop`. Otherwise, the following packages are needed:
 - python with matplotlib, numpy and imagio
 - ffmpeg 
 
-
+#### Running a simulation
+TODO
 
 ![output.gif](https://github.com/aualbert/lbm-reaction/blob/main/output.gif)
