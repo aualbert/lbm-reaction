@@ -9,14 +9,13 @@ Based on code from Philip Mocz (2020) Princeton Univeristy, @PMocz.
 """
 
 
-def run_simulation(Nx: int, Ny: int, Nt: int, obstacles, species, cells, save_path):
+def run_simulation(Ny: int, Nx: int, Nt: int, obstacles, species, cells, save_path):
     """
     Simulation of the Lattice Boltzmann 2DQ9 model
     with arbitrary reactions between species and cells.
 
     To observe turbulences, the size of the channel should be 3x1.
     """
-
     Nx = Nx  # 10^-4 m, length of the channel
     Ny = Ny  # 10^-4 m, width of the channel
     L = 40  # ~ 10^-4 m, caracteristic size of obstacles
@@ -67,8 +66,8 @@ def run_simulation(Nx: int, Ny: int, Nt: int, obstacles, species, cells, save_pa
     """
     rho0 = 100  # average density for initialisation
     F = np.ones((Ny, Nx, NL))  # fluid
-    G = np.zeros((Ny, Nx, NL))  # nutrients
-    C = np.zeros((Ny, Nx, NL))  # cells
+    G = species[0]  # nutrients
+    C = cells[0]  # cells
 
     # Initialisation of fluid
     np.random.seed(40)
@@ -77,15 +76,6 @@ def run_simulation(Nx: int, Ny: int, Nt: int, obstacles, species, cells, save_pa
     rho = np.sum(F, 2)
     for i in idxs:
         F[:, :, i] *= rho0 / rho
-
-    # Initialisation of cells
-    for x in range(50, 100):
-        for y in range(50, 100):
-            C[y, x, :] = 1
-
-    X, Y = np.meshgrid(range(Nx), range(Ny))
-    obstacles = (Y < 1) | (Ny - Y < 1)
-    # Animation parameters
 
     labels = [
         "Vorticity",

@@ -17,12 +17,18 @@ def import_image(image, species, cells, Nx, Ny):
 
     def get_color(element):
         color = element[1]
-        return np.array(100 * (im == color))
+        lattice = np.zeros((Nx, Ny, 9))
+        lattice[:, :, 8] = np.squeeze(
+            np.take(np.array(im == color), indices=[0], axis=2)
+        )
+        return lattice
+
+    times = lambda n, a: n * a
 
     # get species
-    species = list(map(get_color, species))
+    species = list(map(lambda a: 25 * a, map(get_color, species)))
 
     # get cells
-    cells = list(map(get_color, cells))
+    cells = list(map(lambda a: 10 * a, map(get_color, cells)))
 
     return (Nx, Ny, obstacles, species, cells)
