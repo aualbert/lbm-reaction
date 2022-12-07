@@ -1,6 +1,6 @@
 from itertools import chain
-from matplotlib.colors import LinearSegmentedColormap
 import matplotlib.animation as animation
+import matplotlib.colors as colors
 import matplotlib.pyplot as plt
 import numpy as np
 import random as rd
@@ -24,7 +24,24 @@ def CustomCmap(to_rgb):
         "green": ((0, 1, 1), (1, g, g)),
         "blue": ((0, 1, 1), (1, b, b)),
     }
-    return LinearSegmentedColormap("custom_cmap", cdict)
+    return colors.LinearSegmentedColormap("custom_cmap", cdict)
+
+
+class MidpointNormalize(colors.Normalize):
+    def __init__(self, vmin=None, vmax=None, vcenter=None, clip=False):
+        self.vcenter = vcenter
+        super().__init__(vmin, vmax, clip)
+
+    def __call__(self, value, clip=None):
+        # I'm ignoring masked values and all kinds of edge cases to make a
+        # simple example...
+        # Note also that we must extrapolate beyond vmin/vmax
+        x, y = [self.vmin, self.vcenter, self.vmax], [0, 0.5, 1.0]
+        return np.ma.masked_array(np.interp(value, x, y, left=-np.inf, right=np.inf))
+
+    def inverse(self, value):
+        y, x = [self.vmin, self.vcenter, self.vmax], [0, 0.5, 1]
+        return np.interp(value, x, y, left=-np.inf, right=np.inf)
 
 
 def run_simulation(
@@ -62,7 +79,9 @@ def run_simulation(
     """
     Coefficients for cells and nutrients behaviours
     """
-    alpha = 0.000001  # coefficient of cell volume over buckets volume (about 10 -6)
+    alpha = (
+        0  # 0.000001  # coefficient of cell volume over buckets volume (about 10 -6)
+    )
     beta = 0.0001  # coefficient for reflection of water on cells (about 10^-4)
     gammaReproduction = 0.001  # fractions of cells to reproduce
     gammaDeath = 0.0001  # fractions of cells to die
@@ -78,21 +97,23 @@ def run_simulation(
     """
     To observe laminar flow, the Reynolds number
     should be contained between 100 and 150.
-    It is not yet clear how it relates to the initial density
+    It is not clear yet how this relates to the other parameters
     """
-    Re = 100  # dimensionless, Reynolds number, Re = VL/nu
+    Re = 100  # dimensionless , Reynolds number, Re = VL/nu
     V = (Re * nu) / L  # 10^-5 m/s caracteristic speed of the fluid
 
     """
     For the simulation not to break, flow << 1 is required.
     """
-    flow = 0.001  # quantity of fluid particules flowing in at each step
+    flow = 0.01  # quantity of fluid particules flowing in at each step
     flow_nut = 0.01  # quantity of nutrient particles flowing in at each step
 
     """
     Initial conditions.
     """
-    rho0 = 100  # average density for initialisation
+    # masse volumique de l'eau: ~10^-26kg/unité
+    # donc donc une unité = 10^24 molécules
+    rho0 = 1000  # 10^12 kg/m³ average density for initialisation
     F = np.ones((Ny, Nx, NL))  # fluid
     G = species[0]  # nutrients
     C = cells[0]  # cells
@@ -108,7 +129,7 @@ def run_simulation(
     # Initialisation of matplotlib
     labels = [
         "vorticity",
-        "density",
+        "density (kg/m$^3$)",
         "horiz. speed",
     ]
 
@@ -125,6 +146,8 @@ def run_simulation(
             cells_desc,
         )
     )
+
+    norm_density = MidpointNormalize(vmin=800, vcenter=1000, vmax=1200)
 
     size = max(3, len(cells_desc), len(species_desc))
     fig, axs = plt.subplots(3, size)
@@ -143,6 +166,7 @@ def run_simulation(
     for i, j in ite:
         axs[i, j].axis("on")
         axs[i, j].axes.get_yaxis().set_visible(False)
+        axs[i, j].axes.set_xlabel("10^-4 m")
         axs[i, j].imshow(obstacles, cmap="gray", alpha=0.3)
         if i == 0:
             axs[i, j].set_title(labels[j])
@@ -219,7 +243,6 @@ def run_simulation(
 
         # Calculate fluid variables
         rho = np.multiply(np.sum(F, 2), (1 + alpha * np.sum(C, 2)))
-        ##rho = np.sum(F, 2)
         ux = np.sum(F * cxs, 2) / rho
         uy = np.sum(F * cys, 2) / rho
 
@@ -295,7 +318,7 @@ def run_simulation(
 
             # density
             density = np.ma.array(rho, mask=obstacles)
-            im1 = axs[0, 1].imshow(density, cmap="Blues", vmin=0, vmax=140)
+            im1 = axs[0, 1].imshow(density, cmap="Blues", norm=norm_density)
 
             # horizontal speed
             speed = np.ma.array(ux, mask=obstacles)
@@ -323,7 +346,8 @@ def run_simulation(
         fig.colorbar(im4, ax=axs[2, i], location="left")
 
     print("\ncreating animation")
-    ani = animation.ArtistAnimation(fig, ims, interval=50, blit=True, repeat_delay=1000)
+    # Same speed as the simulation
+    ani = animation.ArtistAnimation(fig, ims, interval=10, blit=True, repeat_delay=1000)
 
     print("saving animation")
     ani.save(save_path)

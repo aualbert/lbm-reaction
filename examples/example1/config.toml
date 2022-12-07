@@ -1,4 +1,4 @@
-steps = 100
+steps = 500
 image = "img.png"
 species = [["N", [204, 255, 153]]]
 cells = [["C", [204, 102, 255]]]
