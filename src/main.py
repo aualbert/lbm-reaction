@@ -1,3 +1,5 @@
+from itertools import chain
+from matplotlib.colors import LinearSegmentedColormap
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
@@ -9,7 +11,33 @@ Based on code from Philip Mocz (2020) Princeton Univeristy, @PMocz.
 """
 
 
-def run_simulation(Ny: int, Nx: int, Nt: int, obstacles, species, cells, save_path):
+def CustomCmap(to_rgb):
+    """
+    Convert a rgb color in the range 0-255 in a linear colormap
+    """
+    r, g, b = to_rgb
+    r = r / 255
+    g = g / 255
+    b = b / 255
+    cdict = {
+        "red": ((0, 1, 1), (1, r, r)),
+        "green": ((0, 1, 1), (1, g, g)),
+        "blue": ((0, 1, 1), (1, b, b)),
+    }
+    return LinearSegmentedColormap("custom_cmap", cdict)
+
+
+def run_simulation(
+    Ny: int,
+    Nx: int,
+    Nt: int,
+    obstacles,
+    species,
+    species_desc,
+    cells,
+    cells_desc,
+    save_path,
+):
     """
     Simulation of the Lattice Boltzmann 2DQ9 model
     with arbitrary reactions between species and cells.
@@ -77,21 +105,51 @@ def run_simulation(Ny: int, Nx: int, Nt: int, obstacles, species, cells, save_pa
     for i in idxs:
         F[:, :, i] *= rho0 / rho
 
+    # Initialisation of matplotlib
     labels = [
-        "Vorticity",
-        "Density",
-        "Horizontal Speed",
-        "Nutrients Concentration",
-        "Cells concentration",
+        "vorticity",
+        "density",
+        "horiz. speed",
     ]
-    fig, axs = plt.subplots(5)
-    plt.tight_layout()
-    for i in range(5):
-        axs[i].imshow(obstacles, cmap="gray", alpha=0.3)
-        axs[i].set_title(labels[i])
-        axs[i].axes.get_xaxis().set_visible(False)
-        axs[i].axes.get_yaxis().set_visible(False)
+
+    species_cmaps = list(
+        map(
+            lambda element: CustomCmap(element[1]),
+            species_desc,
+        )
+    )
+
+    cells_cmaps = list(
+        map(
+            lambda element: CustomCmap(element[1]),
+            cells_desc,
+        )
+    )
+
+    size = max(3, len(cells_desc), len(species_desc))
+    fig, axs = plt.subplots(3, size)
+    plt.rcParams.update({"axes.titlesize": "medium"})
     ims = []
+
+    for i in range(3):
+        for j in range(size):
+            axs[i, j].axis("off")
+            axs[i, j].axis("off")
+
+    ite = zip(range(3), 3 * [0])
+    ite = chain(ite, zip(range(len(species_desc)), size * [1]))
+    ite = chain(ite, zip(range(len(cells_desc)), size * [2]))
+
+    for i, j in ite:
+        axs[i, j].axis("on")
+        axs[i, j].axes.get_yaxis().set_visible(False)
+        axs[i, j].imshow(obstacles, cmap="gray", alpha=0.3)
+        if i == 0:
+            axs[i, j].set_title(labels[j])
+        elif i == 1:
+            axs[i, j].set_title("specie " + species_desc[j][0] + " concn.")
+        else:
+            axs[i, j].set_title("cell " + cells_desc[j][0] + " concn.")
 
     """
     Simulation main loop
@@ -231,36 +289,38 @@ def run_simulation(Ny: int, Nx: int, Nt: int, obstacles, species, cells, save_pa
                 np.roll(uy, -1, axis=1) - np.roll(uy, 1, axis=1)
             )
             vorticity = np.ma.array(vorticity, mask=obstacles)
-            im0 = axs[0].imshow(
+            im0 = axs[0, 0].imshow(
                 vorticity, cmap="bwr", label="Vorticity", vmin=-0.3, vmax=0.3
             )
 
             # density
             density = np.ma.array(rho, mask=obstacles)
-            im1 = axs[1].imshow(density, cmap="Blues", vmin=0, vmax=140)
+            im1 = axs[0, 1].imshow(density, cmap="Blues", vmin=0, vmax=140)
 
             # horizontal speed
             speed = np.ma.array(ux, mask=obstacles)
-            im2 = axs[2].imshow(speed, cmap="bwr", vmin=-0.5, vmax=0.5)
+            im2 = axs[0, 2].imshow(speed, cmap="bwr", vmin=-0.5, vmax=0.5)
 
             # Nutrients
             nutri = np.ma.array(np.sum(G, 2), mask=obstacles)
-            im3 = axs[3].imshow(nutri, cmap="hot_r", vmin=0, vmax=30)
+            im3 = axs[1, 0].imshow(nutri, cmap=species_cmaps[0], vmin=0, vmax=30)
 
             # Cells
             cells = np.ma.array(np.sum(C, 2), mask=obstacles)
-            im4 = axs[4].imshow(cells, cmap="ocean_r", vmin=0, vmax=15)
+            im4 = axs[2, 0].imshow(cells, cmap=cells_cmaps[0], vmin=0, vmax=15)
 
             ims.append([im0, im1, im2, im3, im4])
 
     """
     Saving animation
     """
-    fig.colorbar(im0, ax=axs[0], location="left")
-    fig.colorbar(im1, ax=axs[1], location="left")
-    fig.colorbar(im2, ax=axs[2], location="left")
-    fig.colorbar(im3, ax=axs[3], location="left")
-    fig.colorbar(im4, ax=axs[4], location="left")
+    fig.colorbar(im0, ax=axs[0, 0], location="left")
+    fig.colorbar(im1, ax=axs[0, 1], location="left")
+    fig.colorbar(im2, ax=axs[0, 2], location="left")
+    for i in range(len(species_desc)):
+        fig.colorbar(im3, ax=axs[1, i], location="left")
+    for i in range(len(cells_desc)):
+        fig.colorbar(im4, ax=axs[2, i], location="left")
 
     print("\ncreating animation")
     ani = animation.ArtistAnimation(fig, ims, interval=50, blit=True, repeat_delay=1000)

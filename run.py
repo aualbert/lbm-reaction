@@ -33,4 +33,14 @@ with open(args.config, mode="rb") as fp:
         image_path, config["species"], config["cells"], config["Nx"], config["Ny"]
     )
 
-    run_simulation(Nx, Ny, config["steps"], obstacles, species, cells, save_path)
+    run_simulation(
+        Nx,
+        Ny,
+        config["steps"],
+        obstacles,
+        species,
+        config["species"],
+        cells,
+        config["cells"],
+        save_path,
+    )

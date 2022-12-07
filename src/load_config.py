@@ -31,8 +31,4 @@ def import_image(image, species, cells, Nx, Ny):
     # get cells
     cells = np.array(list(map(lambda a: 10 * a, map(get_color, cells))))
 
-    print(species[0][130, 130])
-    print(cells[0][130, 130])
-    print(obstacles)
-
     return (Nx, Ny, obstacles, species, cells)
