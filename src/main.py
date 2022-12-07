@@ -87,7 +87,7 @@ def run_simulation(Ny: int, Nx: int, Nt: int, obstacles, species, cells, save_pa
     fig, axs = plt.subplots(5)
     plt.tight_layout()
     for i in range(5):
-        axs[i].imshow(~obstacles, cmap="gray", alpha=0.3)
+        axs[i].imshow(obstacles, cmap="gray", alpha=0.3)
         axs[i].set_title(labels[i])
         axs[i].axes.get_xaxis().set_visible(False)
         axs[i].axes.get_yaxis().set_visible(False)

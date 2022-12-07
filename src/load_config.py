@@ -10,23 +10,29 @@ def import_image(image, species, cells, Nx, Ny):
         (Nx, Ny, _) = im.shape
     im = im[:Nx, :Ny, 0:3]
 
-    # get obstacles
-    obstacles = np.squeeze(np.take(np.array(im == [0, 0, 0]), indices=[0], axis=2))
-    obstacles[0, :] = True
-    obstacles[-1, :] = True
-
     def get_color(element):
         color = element[1]
         lattice = np.zeros((Nx, Ny, 9))
-        lattice[:, :, 8] = np.squeeze(
-            np.take(np.array(im == color), indices=[0], axis=2)
+        lattice[..., 8] = (
+            (im[..., 0] == color[0])
+            & (im[..., 1] == color[1])
+            & (im[..., 2] == color[2])
         )
         return lattice
 
+    # get obstacles
+    obstacles = (im[..., 0] == 0) & (im[..., 1] == 0) & (im[..., 2] == 0)
+    obstacles[0, :] = True
+    obstacles[-1, :] = True
+
     # get species
-    species = list(map(lambda a: 25 * a, map(get_color, species)))
+    species = np.array(list(map(lambda a: 25 * a, map(get_color, species))))
 
     # get cells
-    cells = list(map(lambda a: 10 * a, map(get_color, cells)))
+    cells = np.array(list(map(lambda a: 10 * a, map(get_color, cells))))
+
+    print(species[0][130, 130])
+    print(cells[0][130, 130])
+    print(obstacles)
 
     return (Nx, Ny, obstacles, species, cells)
