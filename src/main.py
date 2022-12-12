@@ -34,15 +34,13 @@ class MidpointNormalize(colors.Normalize):
         super().__init__(vmin, vmax, clip)
 
     def __call__(self, value, clip=None):
-        # I'm ignoring masked values and all kinds of edge cases to make a
-        # simple example...
-        # Note also that we must extrapolate beyond vmin/vmax
         x, y = [self.vmin, self.vcenter, self.vmax], [0, 0.5, 1.0]
         return np.ma.masked_array(np.interp(value, x, y, left=-np.inf, right=np.inf))
 
     def inverse(self, value):
         y, x = [self.vmin, self.vcenter, self.vmax], [0, 0.5, 1]
         return np.interp(value, x, y, left=-np.inf, right=np.inf)
+
 
 def run_simulation(
     Ny: int,
@@ -54,7 +52,7 @@ def run_simulation(
     cells,
     cells_desc,
     save_path,
-    ):
+):
     """
     Simulation of the Lattice Boltzmann 2DQ9 model
     with arbitrary reactions between species and cells.
@@ -79,7 +77,7 @@ def run_simulation(
     """
     Coefficients for cells and nutrients behaviours
     """
-    alpha = 0.000001 #about 10^-6
+    alpha = 0.000001  # about 10^-6
     beta = 0.0001  # coefficient for reflection of water on cells (about 10^-4)
     gammaReproduction = 0.001  # fractions of cells to reproduce
     gammaDeath = 0.0001  # fractions of cells to die
@@ -104,7 +102,9 @@ def run_simulation(
     For the simulation not to break, flow << 1 is required.
     """
     flow = 0.01  # quantity of fluid particules flowing in at each step
-    flow_nut = 0.01  # quantity of nutrient particles flowing in at each step
+    flow_nut = [0.01] * len(
+        species_desc
+    )  # quantity of nutrient particles flowing in at each step
 
     """
     Initial conditions.
@@ -113,8 +113,8 @@ def run_simulation(
     # donc donc une unité = 10^24 molécules
     rho0 = 1000  # 10^12 kg/m³ average density for initialisation
     F = np.ones((Ny, Nx, NL))  # fluid
-    G = species[0]  # nutrients
-    C = cells[0]  # cells
+    G = species  # nutrients
+    C = cells  # cells
 
     # Initialisation of fluid
     np.random.seed(40)
@@ -124,33 +124,33 @@ def run_simulation(
     for i in idxs:
         F[:, :, i] *= rho0 / rho
 
-    def drift_particles(F) :
+    def drift_particles(F):
         for i, cx, cy, w in zip(idxs, cxs, cys, weights):
             F[:, :, i] = np.roll(F[:, :, i], cx, axis=1)
             F[:, :, i] = np.roll(F[:, :, i], cy, axis=0)
         return F
 
-    def simulate_flow_fluid (F) :
+    def simulate_flow_fluid(F):
         """
         Simulate the flow with pseudo physical boundaries ""
         """
-        F = np.pad(F, ((0, 0), (1, 1), (0, 0)), "edge") #extend the array
+        F = np.pad(F, ((0, 0), (1, 1), (0, 0)), "edge")  # extend the array
         F[:, 0, :] = F[:, 3, :]
-        F[:, -1 , :] = F[:, -4 , :]
+        F[:, -1, :] = F[:, -4, :]
         F[:, 0, 3] += flow
-        F = drift_particles(F) # drift
-        F = F[:, 1 : Nx + 1, :] # cut the array
+        F = drift_particles(F)  # drift
+        F = F[:, 1 : Nx + 1, :]  # cut the array
         return F
 
-    def simulate_flow_elements(G, flow_element) :
+    def simulate_flow_elements(G, flow_element):
         G = np.pad(G, ((0, 0), (1, 1), (0, 0)), "edge")
         G[:, 0, 3] += flow_element
         G = drift_particles(G)
         G = G[:, 1 : Nx + 1, :]
         return G
 
-    @jit(nopython = True)
-    def apply_collisions_water(F, rho, ux, uy) :
+    @jit(nopython=True)
+    def apply_collisions_water(F, rho, ux, uy):
         Feq = np.zeros(F.shape)
         for i, cx, cy, w in zip(idxs, cxs, cys, weights):
             Feq[:, :, i] = (
@@ -163,40 +163,42 @@ def run_simulation(
                     - 3 * (ux**2 + uy**2) / 2
                 )
             )
-        return (F - ((dt / tau) * (F - Feq)))
+        return F - ((dt / tau) * (F - Feq))
 
-    @jit(nopython = True)
-    def calculate_fluids_variables(F) :
-        rho = np.multiply(np.sum(F, 2), (1 + alpha * np.sum(C, 2)))
+    @jit(nopython=True)
+    def calculate_fluids_variables(F, C):
+        cell_cc = np.sum(np.sum(C, 0), 2)
+        rho = np.multiply(np.sum(F, 2), (1 + alpha * cell_cc))
         ux = np.sum(F * cxs, 2) / rho
         uy = np.sum(F * cys, 2) / rho
         return (rho, ux, uy)
 
-    @jit(nopython = True)
-    def apply_collisions_elements(G,rho,ux,uy) :
+    @jit(nopython=True)
+    def apply_collisions_elements(G, ux, uy):
         Geq = np.zeros(G.shape)
         Cl = np.sum(G, 2)
         for i, cx, cy, w in zip(idxs, cxs, cys, weights):
-            Geq[:, :, i] = Cl * w  * (1 + 3 * (cx * ux + cy * uy))
-        return G -(dt / tau) * (G - Geq)
+            Geq[:, :, i] = Cl * w * (1 + 3 * (cx * ux + cy * uy))
+        return G - (dt / tau) * (G - Geq)
 
-    def get_bndry (F):
+    def get_bndry(F):
         bndryF = F[obstacles, :]
         bndryF = bndryF[:, [0, 5, 6, 7, 8, 1, 2, 3, 4]]
         return bndryF
 
-
     def bounce_on_cells(F, C):
-        cellsConcentration = np.sum(C, 2)
+        cell_cc = np.sum(np.sum(C, 0), 2)
         cc = np.empty((Ny, Nx, NL))
         for i in range(NL):
-            cc[:, :, i] = cellsConcentration
+            cc[:, :, i] = cell_cc
         F = np.multiply((1 - beta * cc), F) + beta * np.multiply(
             cc, F[:, :, [0, 5, 6, 7, 8, 1, 2, 3, 4]]
         )
         return F
 
-    def simulate_cells_life (G,C):
+    def simulate_cells_life(G, C):
+
+        """
         # Simulate the feeding and reproductions of bacterias
         nbOfNewBacteria = np.minimum(C, G) * gammaReproduction
         C += nbOfNewBacteria
@@ -204,6 +206,7 @@ def run_simulation(
         # Simulate the death of cells
         nbOfDeadBacteria = C * gammaDeath
         C -= nbOfDeadBacteria
+        """
         return (G, C)
 
     # Initialisation of matplotlib
@@ -239,9 +242,9 @@ def run_simulation(
             axs[i, j].axis("off")
             axs[i, j].axis("off")
 
-    ite = zip(range(3), 3 * [0])
-    ite = chain(ite, zip(range(len(species_desc)), size * [1]))
-    ite = chain(ite, zip(range(len(cells_desc)), size * [2]))
+    ite = zip(3 * [0], range(3))
+    ite = chain(ite, zip(size * [1], range(len(species_desc))))
+    ite = chain(ite, zip(size * [2], range(len(cells_desc))))
 
     for i, j in ite:
         axs[i, j].axis("on")
@@ -263,24 +266,38 @@ def run_simulation(
 
         # Flows
         F = simulate_flow_fluid(F)
-        G = simulate_flow_elements(G, flow_nut)
-        C = simulate_flow_elements(C,0)
+        for i, g in enumerate(G):
+            G[i] = simulate_flow_elements(g, flow_nut[i])
+        for i, c in enumerate(C):
+            C[i] = simulate_flow_elements(c, 0)
 
         # Solid Boundaries
         bndryF = get_bndry(F)
-        bndryG = get_bndry(G)
-        bndryC = get_bndry(C)
+
+        bndryG = []
+        for _, g in enumerate(G):
+            bndryG.append(get_bndry(g))
+        bndryG = np.array(bndryG)
+
+        bndryC = []
+        for _, c in enumerate(C):
+            bndryC.append(get_bndry(c))
+        bndryC = np.array(bndryC)
 
         # Collisions
-        (rho, ux, uy) = calculate_fluids_variables(F)
+        (rho, ux, uy) = calculate_fluids_variables(F, C)
         F = apply_collisions_water(F, rho, ux, uy)
-        G = apply_collisions_elements(G, rho, ux, uy)
-        C = apply_collisions_elements(C, rho, ux, uy)
+
+        for i, g in enumerate(G):
+            G[i] = apply_collisions_elements(g, ux, uy)
+
+        for i, c in enumerate(C):
+            C[i] = apply_collisions_elements(c, ux, uy)
 
         # Apply boundary
         F[obstacles, :] = bndryF
-        G[obstacles, :] = bndryG
-        C[obstacles, :] = bndryC
+        G[:, obstacles, :] = bndryG
+        C[:, obstacles, :] = bndryC
 
         # Specific cells actions
         F = bounce_on_cells(F, C)
@@ -291,6 +308,8 @@ def run_simulation(
         """
         if (it % 10) == 0:
 
+            images_cells = []
+            images_species = []
             # vorticity
             vorticity = (np.roll(ux, -1, axis=0) - np.roll(ux, 1, axis=0)) - (
                 np.roll(uy, -1, axis=1) - np.roll(uy, 1, axis=1)
@@ -309,14 +328,18 @@ def run_simulation(
             im2 = axs[0, 2].imshow(speed, cmap="bwr", vmin=-0.5, vmax=0.5)
 
             # Nutrients
-            nutri = np.ma.array(np.sum(G, 2), mask=obstacles)
-            im3 = axs[1, 0].imshow(nutri, cmap=species_cmaps[0], vmin=0, vmax=30)
+            for i, g in enumerate(G):
+                nutri = np.ma.array(np.sum(g, 2), mask=obstacles)
+                im = axs[1, i].imshow(nutri, cmap=species_cmaps[i], vmin=0, vmax=30)
+                images_species.append(im)
 
             # Cells
-            cells = np.ma.array(np.sum(C, 2), mask=obstacles)
-            im4 = axs[2, 0].imshow(cells, cmap=cells_cmaps[0], vmin=0, vmax=15)
+            for i, c in enumerate(C):
+                cells = np.ma.array(np.sum(c, 2), mask=obstacles)
+                im = axs[2, i].imshow(cells, cmap=cells_cmaps[i], vmin=0, vmax=15)
+                images_cells.append(im)
 
-            ims.append([im0, im1, im2, im3, im4])
+            ims.append([im0, im1, im2] + images_species + images_cells)
 
     """
     Saving animation
@@ -324,10 +347,10 @@ def run_simulation(
     fig.colorbar(im0, ax=axs[0, 0], location="left")
     fig.colorbar(im1, ax=axs[0, 1], location="left")
     fig.colorbar(im2, ax=axs[0, 2], location="left")
-    for i in range(len(species_desc)):
-        fig.colorbar(im3, ax=axs[1, i], location="left")
-    for i in range(len(cells_desc)):
-        fig.colorbar(im4, ax=axs[2, i], location="left")
+    for i, im in enumerate(images_species):
+        fig.colorbar(im, ax=axs[1, i], location="left")
+    for i, im in enumerate(images_cells):
+        fig.colorbar(im, ax=axs[2, i], location="left")
 
     print("\ncreating animation")
     # Same speed as the simulation

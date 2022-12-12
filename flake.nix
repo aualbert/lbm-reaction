@@ -20,7 +20,7 @@
             packages.numpy
             packages.imageio
             packages.tomli
-	    packages.numba
+            packages.numba
           ];
         };
       });
