@@ -36,7 +36,7 @@ def import_image(image, species, cells, Nx, Ny):
 
 
 def import_reactions(former_reactions, species, cells) :
-    n = len (former_reactions)
+    n = len(former_reactions)
     alpha = 0.0001
     get_element = {}     # for a key k which is the name of an element contains whether it is a cell or a species and its position in tha array
     nb_species = len(species)
