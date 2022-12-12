@@ -3,7 +3,7 @@ import os.path
 import tomli
 
 from src.main import run_simulation
-from src.load_config import import_image
+from src.load_config import import_image, import_reactions
 
 # parse command line arguments
 parser = argparse.ArgumentParser(
@@ -32,6 +32,8 @@ with open(args.config, mode="rb") as fp:
     (Nx, Ny, obstacles, species, cells) = import_image(
         image_path, config["species"], config["cells"], config["Nx"], config["Ny"]
     )
+    
+    reactions = import_reactions (config["reactions"], config["species"], config["cells"])
 
     run_simulation(
         Nx,
@@ -43,4 +45,5 @@ with open(args.config, mode="rb") as fp:
         cells,
         config["cells"],
         save_path,
+        reactions
     )

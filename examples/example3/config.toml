@@ -1,0 +1,9 @@
+steps = 1000
+image = "img.png"
+species = [["N", [204, 255, 153]]]
+cells = [["C", [204, 102, 255]], ["D",[224,31,31]]]
+reactions = [
+          {reactants = [[1,"C"], [1,"D"]], products = [], rate = [3,[2,2]]},
+          {reactants = [[1,"C"], [1,"N"]], products = [[2,"C"]], rate = [1,[1,1]]},
+	  {reactants = [[1,"D"], [1,"N"]], products = [[2,"D"]], rate = [1,[2,1]]}
+	]	

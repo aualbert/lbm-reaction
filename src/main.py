@@ -52,6 +52,7 @@ def run_simulation(
     cells,
     cells_desc,
     save_path,
+    reactions
 ):
     """
     Simulation of the Lattice Boltzmann 2DQ9 model
@@ -196,19 +197,6 @@ def run_simulation(
         )
         return F
 
-    def simulate_cells_life(G, C):
-
-        """
-        # Simulate the feeding and reproductions of bacterias
-        nbOfNewBacteria = np.minimum(C, G) * gammaReproduction
-        C += nbOfNewBacteria
-        G -= nbOfNewBacteria
-        # Simulate the death of cells
-        nbOfDeadBacteria = C * gammaDeath
-        C -= nbOfDeadBacteria
-        """
-        return (G, C)
-
     # Initialisation of matplotlib
     labels = [
         "vorticity",
@@ -301,7 +289,7 @@ def run_simulation(
 
         # Specific cells actions
         F = bounce_on_cells(F, C)
-        (G, C) = simulate_cells_life(G, C)
+        (G, C) = reactions(G,C)
 
         """
         Simulation plotting every 10 steps
