@@ -34,6 +34,9 @@ with open(args.config, mode="rb") as fp:
     )
     
     reactions = import_reactions (config["reactions"], config["species"], config["cells"])
+    flow = config["flow"]
+    flow_species = [c[2] for c in (config["species"])]
+    flow_cells = [c[2] for c in (config["cells"])]
 
     run_simulation(
         Nx,
@@ -45,5 +48,8 @@ with open(args.config, mode="rb") as fp:
         cells,
         config["cells"],
         save_path,
-        reactions
+        reactions,
+        flow,
+        flow_species,
+        flow_cells
     )

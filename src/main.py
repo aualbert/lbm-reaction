@@ -52,7 +52,10 @@ def run_simulation(
     cells,
     cells_desc,
     save_path,
-    reactions
+    reactions,
+    flow,
+    flow_species,
+    flow_cells
 ):
     """
     Simulation of the Lattice Boltzmann 2DQ9 model
@@ -102,10 +105,7 @@ def run_simulation(
     """
     For the simulation not to break, flow << 1 is required.
     """
-    flow = 0.01  # quantity of fluid particules flowing in at each step
-    flow_nut = [0.01] * len(
-        species_desc
-    )  # quantity of nutrient particles flowing in at each step
+    # quantity of nutrient particles flowing in at each step
 
     """
     Initial conditions.
@@ -255,9 +255,9 @@ def run_simulation(
         # Flows
         F = simulate_flow_fluid(F)
         for i, g in enumerate(G):
-            G[i] = simulate_flow_elements(g, flow_nut[i])
+            G[i] = simulate_flow_elements(g, flow_species[i])
         for i, c in enumerate(C):
-            C[i] = simulate_flow_elements(c, 0)
+            C[i] = simulate_flow_elements(c, flow_cells[i])
 
         # Solid Boundaries
         bndryF = get_bndry(F)
