@@ -206,14 +206,14 @@ def run_simulation(
 
     species_cmaps = list(
         map(
-            lambda element: CustomCmap(element[1]),
+            lambda element: CustomCmap(element["color"]),
             species_desc,
         )
     )
 
     cells_cmaps = list(
         map(
-            lambda element: CustomCmap(element[1]),
+            lambda element: CustomCmap(element["color"]),
             cells_desc,
         )
     )
@@ -242,9 +242,9 @@ def run_simulation(
         if i == 0:
             axs[i, j].set_title(labels[j])
         elif i == 1:
-            axs[i, j].set_title("specie " + species_desc[j][0] + " concn.")
+            axs[i, j].set_title("specie " + species_desc[j]["name"] + " concn.")
         else:
-            axs[i, j].set_title("cell " + cells_desc[j][0] + " concn.")
+            axs[i, j].set_title("cell " + cells_desc[j]["name"] + " concn.")
 
     """
     Simulation main loop

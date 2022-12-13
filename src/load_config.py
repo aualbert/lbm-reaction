@@ -12,7 +12,7 @@ def import_image(image, species, cells, Nx, Ny):
     im = im[:Nx, :Ny, 0:3]
 
     def get_color(element):
-        color = element[1]
+        color = element["color"]
         lattice = np.zeros((Nx, Ny, 9))
         lattice[..., 8] = (
             (im[..., 0] == color[0])
@@ -42,15 +42,15 @@ def import_reactions(former_reactions, species, cells) :
     nb_species = len(species)
     nb_cells = len(cells)
     for i in range (nb_species) :
-        get_element[(species[i][0])] = (True, i) # true for species
+        get_element[(species[i]["name"])] = (True, i) # true for species
     for i in range (nb_cells) :
-        get_element[(cells[i][0])] =  (False, i) # false for cells
+        get_element[(cells[i]["name"])] =  (False, i) # false for cells
     def compute_reactions(G,C) :
         Nx, Ny, Nl = np.shape(G[0])
         for i in range (n): #for each reaction
             # determine the speed of the reactions
             speed = np.full((Nx, Ny, Nl) , alpha * former_reactions[i]["rate"][0]) # speed coefficient
-            for reactant, coefSpeed in zip(former_reactions[i]["reactants"], former_reactions[i]["rate"][1]) :
+            for (reactant, coefSpeed) in zip(former_reactions[i]["reactants"], former_reactions[i]["rate"][1]) :
                 (s, j) = get_element.get(reactant[1])
                 if s :
                     speed *= np.power (G[j], coefSpeed)
