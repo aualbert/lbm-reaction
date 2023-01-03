@@ -1,7 +1,7 @@
 # lbm-reaction
 A Lattice Boltzmann method with reactions to model E. coli growth.
 This simulation was written as part of the initiation to research course of the MPRI.
-The alternative version from Roxane can be found here: https://github.com/aualbert/lbm-reaction/tree/Method-2
+The alternative version from Roxane can be found here: https://github.com/aualbert/lbm-reaction/tree/Method-2.
 
 ## Usage
 
