@@ -11,18 +11,18 @@ With nix installed, simply type `nix develop`. Otherwise, the following packages
 - ffmpeg 
 
 #### Running a simulation
-To make a simulation one need a folder with :
-- one picture describing te initial situation
-- one file called config.toml
+To configure a simulation requires:
+- a picture describing the initial situation
+- a configuration file in the toml format
 
-fill the config.toml file with :
+The configuration file contains:
 - steps : the number of simulation step, one steps last 10 ms on the output, the simulation is real time
-- image : an image that defines the initial simulation, the size in pixel of the picture defines the size of the output image, 400 * 200 pixels is a good order of magnitude
-- flow : the water flow, nb of water elements added every 10 ms in every entering bucket
-- species : list of species with each the fields : name (string) , color \[r,g,b\] out of 255 (refering to the color used in the image), inflow
-- cells : list of species of cells with each the fields : name, color, inflow, size (10^-6 m)
-- reactions : list of reactions with each the fields : reactants \[stoechiometric coefficient, name (refering to the species and cells names)\] , products (with the same format), rate (speed coefficient,\[list of the exponent coeficient of each species in the reaction speed formula\]
+- image : the path to an image that defines the initial simulation, the size in pixel of the picture defines the size of the output image, 400 * 200 pixels is a good order of magnitude
+- flow : the water flow, ie the number of water elements added every 10 ms in every entering bucket
+- species : a list of species. A species is defined by its name, color and inflow (same as flow but for a specie). Eg. `{ name = "N", color = [204, 255, 153], inflow = 0.1 }`
+- cells : a list of different types of cells. A cell is defined by its name, color and inflow. Eg. `{ name = "C", color = [204, 102, 255], inflow = 0}`
+- reactions : a list of reactions. A reaction is defined by its reactants, products and rate. Eg. `{reactants = [[1,"C"], [1,"D"]], products = [], rate = [3,[2,2]]}`
 
-then enter the command python3 run.py path/to/config.toml`.
+To run the simulation, type `python3 run.py path/to/config`.
 
 ![output.gif](https://github.com/aualbert/lbm-reaction/blob/main/examples/exampleConcurrency/output.gif)
