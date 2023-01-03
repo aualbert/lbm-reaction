@@ -1,8 +1,0 @@
-steps = 1000
-image = "img.png"
-species = [["N", [204, 255, 153]]]
-cells = [["C", [204, 102, 255]]]
-reactions = [
-          {reactants = [[1,"C"]], products = [], rate = [1,[1]]},
-          {reactants = [[1,"C"], [1,"N"]], products = [[2,"C"]], rate = [1,[1,1]]}
-]	

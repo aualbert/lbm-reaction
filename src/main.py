@@ -83,8 +83,6 @@ def run_simulation(
     """
     alpha = 0.000001  # about 10^-6
     beta = 0.0001  # coefficient for reflection of water on cells (about 10^-4)
-    gammaReproduction = 0.001  # fractions of cells to reproduce
-    gammaDeath = 0.0001  # fractions of cells to die
 
     """
     The relaxation factor for fluid sould be contained between 0.6 and 1.
@@ -110,8 +108,8 @@ def run_simulation(
     """
     Initial conditions.
     """
-    # masse volumique de l'eau: ~10^-26kg/unité
-    # donc donc une unité = 10^24 molécules
+    # volumic mass of water: ~10^-26kg/units
+    # so one unit = 10^24 molecules
     rho0 = 1000  # 10^12 kg/m³ average density for initialisation
     F = np.ones((Ny, Nx, NL))  # fluid
     G = species  # nutrients
