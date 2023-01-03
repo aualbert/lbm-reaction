@@ -21,6 +21,7 @@ fill the config.toml file with :
 - species : list of species with each the fields : name (string) , color \[r,g,b\] out of 255 (refering to the color used in the image), inflow
 - cells : list of species of cells with each the fields : name, color, inflow, size (10^-6 m)
 - reactions : list of reactions with each the fields : reactants \[stoechiometric coefficient, name (refering to the species and cells names)\] , products (with the same format), rate (speed coefficient,\[list of the exponent coeficient of each species in the reaction speed formula\]
+
 then enter the command python3 run.py path/to/config.toml`.
 
 ![output.gif](https://github.com/aualbert/lbm-reaction/blob/main/output.gif)
