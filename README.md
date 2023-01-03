@@ -24,4 +24,4 @@ fill the config.toml file with :
 
 then enter the command python3 run.py path/to/config.toml`.
 
-![output.gif](https://github.com/aualbert/lbm-reaction/blob/main/output.gif)
+![output.gif](https://github.com/aualbert/lbm-reaction/blob/main/examples/exampleConcurrency/output.gif)
