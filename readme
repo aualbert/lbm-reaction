@@ -1,0 +1,40 @@
+**************************** README *************************************
+
+I used the simulation with Boltzmann lattice and nutrients as in the first method.
+I used a now old version of the code, so it might differ a lot with the one you will read for the first method.
+
+Explicit formulas are to be found in the slides.
+
+I added the array C representing the cells, in the style of a cellular automaton : the number in square C[y,x] is the number of cells in this square.
+
+I implemented the following phenomenon: (corresponding lines in the code are given between brackets)
+
+- Action of the force caused by density of water on cells [line 202]
+	Cells go where the density is lower.
+
+- Action of the speed of water on cells (fluid friction) [line 209]
+	Those two forces are summed in "Forces", an array of vectors of the form: (vertical force, horizontal force).
+	The movement of cells is deduced from it also considering:
+
+- Adhesion of cells to obstacles [line 219-221]
+	The minimum force necessary to push cells is higher near obstacles.
+
+- Adhesion of cells together [line 215]
+	Once cells get in the same square, they move together until the end because of how movements of cells are implemented.
+
+- Resistance of borders and obstacles [line 237-242]
+
+- Impossibility for cells to go were there are already too many cells [line 237-242]
+	in fact it still happens in some cases, so they separate afterwards. [line 246]
+
+- Action of cells on water [line 260]
+	The density is refreshed at each stepp of the main loop, considering that the present cells take some volum and make the volum of water of water smaller, for the same amount of water.
+
+For that, I also added initialisations befor the main loop:
+
+- C : cells
+- C2 : extended version of C (+1 on each side)
+- obstacles2 : extended version of obstacles (+1 on each side)
+- close_obs : points near an obstacle for the simulation of adhesion
+- Forces : sum of the forces that push the cells
+
