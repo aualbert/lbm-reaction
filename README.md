@@ -6,7 +6,7 @@ This simulation was written as part of the initiation to research course of the 
 
 #### Requirements
 With nix installed, simply type `nix develop`. Otherwise, the following packages are needed:
-- python with matplotlib, numpy and imagio
+- python with matplotlib, numpy, imagio, tomli and numba
 - ffmpeg 
 
 #### Running a simulation
